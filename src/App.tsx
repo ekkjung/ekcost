@@ -47,7 +47,6 @@ import { twMerge } from 'tailwind-merge';
 import { CostItem, CostCategory } from './types';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
-import { LedgerPage } from './components/LedgerPage';
 import { FullScreenListView } from './components/FullScreenListView';
 import { Home } from './components/Home';
 import { 
@@ -260,8 +259,6 @@ function AppContent() {
         return <FullScreenListView type="plan" items={items} onClose={() => setActivePage('home')} formatCurrency={formatCurrency} onDeleteItem={deleteItem} onEditItem={handleEdit} onAddNew={() => handleAddNew(true)} onCompleteUse={onCompleteUse} onRestorePlan={onRestorePlan} />;
       case 'usage':
         return <FullScreenListView type="usage" items={items} onClose={() => setActivePage('home')} formatCurrency={formatCurrency} onDeleteItem={deleteItem} onEditItem={handleEdit} onAddNew={() => handleAddNew(false)} onCompleteUse={onCompleteUse} onRestorePlan={onRestorePlan} />;
-      case 'history':
-        return <LedgerPage items={filteredItems} formatCurrency={formatCurrency} onDeleteItem={deleteItem} onEditItem={handleEdit} requestSort={requestSort} />;
       case 'dashboard':
         return <Dashboard items={items} />;
       default:

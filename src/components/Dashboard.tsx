@@ -3,6 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { CostItem } from '../types';
 import { db, auth, doc, setDoc, onSnapshot, handleFirestoreError, OperationType } from '../firebase';
 import { toast } from 'sonner';
+import { List, CheckCircle, Activity } from 'lucide-react';
 
 interface DashboardProps {
   items: CostItem[];
@@ -58,6 +59,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ items }) => {
     });
   }, [items, year, month]);
 
+  const usageStats = useMemo(() => {
+    const usageItems = filteredItems.filter(i => !i.isPlanned);
+    const included = usageItems.filter(i => i.isIncludedInPlan).length;
+    const excluded = usageItems.filter(i => !i.isIncludedInPlan).length;
+    return { included, excluded, total: usageItems.length };
+  }, [filteredItems]);
+
   const plannedVsActual = useMemo(() => {
     const planned = filteredItems.filter(i => i.isPlanned).reduce((sum, i) => sum + i.totalAmount, 0);
     const actual = filteredItems.filter(i => !i.isPlanned).reduce((sum, i) => sum + i.totalAmount, 0);
@@ -102,6 +110,36 @@ export const Dashboard: React.FC<DashboardProps> = ({ items }) => {
             <option value={0}>전체 월</option>
             {Array.from({ length: 12 }, (_, i) => i + 1).map(m => <option key={m} value={m}>{m}월</option>)}
           </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
+            <List className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-sm text-slate-500 font-bold">전체 사용 건수</p>
+            <p className="text-2xl font-bold text-slate-900">{usageStats.total}건</p>
+          </div>
+        </div>
+        <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
+            <CheckCircle className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-sm text-slate-500 font-bold">계획 내 사용 (포함)</p>
+            <p className="text-2xl font-bold text-slate-900">{usageStats.included}건</p>
+          </div>
+        </div>
+        <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center">
+            <Activity className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-sm text-slate-500 font-bold">계획 외 사용 (미포함)</p>
+            <p className="text-2xl font-bold text-slate-900">{usageStats.excluded}건</p>
+          </div>
         </div>
       </div>
 

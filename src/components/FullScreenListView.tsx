@@ -228,15 +228,13 @@ export function FullScreenListView({ type, items, onClose, formatCurrency, onDel
           </h2>
         </div>
         <div className="flex items-center gap-3">
-          {type === 'plan' && (
-            <button 
-              onClick={onAddNew}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
-            >
-              <Plus className="w-4 h-4" />
-              계획 추가
-            </button>
-          )}
+          <button 
+            onClick={onAddNew}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
+          >
+            <Plus className="w-4 h-4" />
+            {type === 'plan' ? '계획 추가' : '사용 추가'}
+          </button>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input 

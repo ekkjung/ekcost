@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, List, TrendingUp, TrendingDown, History, Mail, LayoutDashboard, X } from 'lucide-react';
+import { Home, List, TrendingUp, TrendingDown, Mail, LayoutDashboard, X } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 interface SidebarProps {
@@ -12,7 +12,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) =
     { id: 'home', label: '홈 페이지', icon: Home },
     { id: 'plan', label: '계획 리스트', icon: TrendingUp },
     { id: 'usage', label: '사용 리스트', icon: TrendingDown },
-    { id: 'history', label: '변경 이력', icon: History },
     { id: 'mail', label: 'EK메일', icon: Mail, external: 'https://ekk.daouoffice.com/login' },
     { id: 'dashboard', label: '데시보드', icon: LayoutDashboard },
   ];
