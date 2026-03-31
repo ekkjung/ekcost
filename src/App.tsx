@@ -45,7 +45,6 @@ import {
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { CostItem, CostCategory } from './types';
-import { toast } from 'sonner';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
 import { LedgerPage } from './components/LedgerPage';
@@ -130,7 +129,7 @@ class ErrorBoundary extends React.Component<any, any> {
   }
 }
 
-const CATEGORIES: CostCategory[] = ['수선비', '소모품비', '기타경비', '공정', '설비', '인건비', '재료비', '기타'];
+const CATEGORIES: CostCategory[] = ['수선비', '소모품비', '기타경비'];
 const YEARS = [2024, 2025, 2026, 2027];
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
 
@@ -144,13 +143,13 @@ function AppContent() {
     year: new Date().getFullYear(),
     month: new Date().getMonth() + 1,
     day: new Date().getDate(),
-    category: '기타',
+    category: '수선비',
     isPlanned: true,
     itemName: '',
     quantity: 0,
     unitPrice: 0,
     totalAmount: 0,
-    isIncludedInPlan: false,
+    isIncludedInPlan: true,
     createdAt: new Date().toISOString(),
     uid: auth.currentUser?.uid || 'anonymous',
   });
@@ -173,13 +172,13 @@ function AppContent() {
       year: new Date().getFullYear(),
       month: new Date().getMonth() + 1,
       day: new Date().getDate(),
-      category: '기타',
+      category: '수선비',
       isPlanned,
       itemName: '',
       quantity: 0,
       unitPrice: 0,
       totalAmount: 0,
-      isIncludedInPlan: false,
+      isIncludedInPlan: true,
       createdAt: new Date().toISOString(),
       uid: auth.currentUser?.uid || 'anonymous',
     });
@@ -193,10 +192,28 @@ function AppContent() {
 
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    const docRef = editingId ? doc(db, 'costs', editingId) : doc(collection(db, 'costs'), crypto.randomUUID());
-    await setDoc(docRef, { ...newItem, totalAmount: newItem.quantity * newItem.unitPrice });
-    setIsAdding(false);
-    setEditingId(null);
+    if (!auth.currentUser) {
+      toast.error('로그인이 필요합니다. 사이드바에서 로그인해 주세요.');
+      return;
+    }
+    try {
+      const docRef = editingId ? doc(db, 'costs', editingId) : doc(collection(db, 'costs'));
+      const finalItem = { 
+        ...newItem, 
+        id: docRef.id,
+        uid: auth.currentUser.uid,
+        totalAmount: newItem.quantity * newItem.unitPrice,
+        updatedAt: new Date().toISOString()
+      };
+      await setDoc(docRef, finalItem);
+      toast.success(editingId ? '수정되었습니다.' : '저장되었습니다.');
+      setIsAdding(false);
+      setEditingId(null);
+    } catch (error) {
+      console.error("Save error:", error);
+      handleFirestoreError(error, OperationType.WRITE, 'costs');
+      toast.error('저장 중 오류가 발생했습니다.');
+    }
   };
 
   useEffect(() => {
@@ -436,7 +453,10 @@ function AppContent() {
                     type="number" 
                     min="1"
                     value={newItem.quantity}
-                    onChange={(e) => setNewItem({ ...newItem, quantity: Number(e.target.value) })}
+                    onChange={(e) => {
+                      const q = Number(e.target.value);
+                      setNewItem({ ...newItem, quantity: q, totalAmount: q * newItem.unitPrice });
+                    }}
                     className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
                   />
                 </div>
@@ -447,7 +467,10 @@ function AppContent() {
                     type="number" 
                     min="0"
                     value={newItem.unitPrice}
-                    onChange={(e) => setNewItem({ ...newItem, unitPrice: Number(e.target.value) })}
+                    onChange={(e) => {
+                      const p = Number(e.target.value);
+                      setNewItem({ ...newItem, unitPrice: p, totalAmount: newItem.quantity * p });
+                    }}
                     className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
                   />
                 </div>
@@ -463,7 +486,7 @@ function AppContent() {
                 type="submit"
                 className="w-full bg-[#3B82F6] text-white py-4 rounded-2xl text-sm font-bold uppercase tracking-widest hover:bg-blue-600 transition-all shadow-xl shadow-blue-100 mt-4"
               >
-                {editingId ? '기록 수정' : '기록 확인'}
+                {editingId ? '수정' : '저장'}
               </button>
             </form>
           </div>
