@@ -25,12 +25,30 @@
         "uid": { "type": "string" }
       },
       "required": ["id", "year", "month", "day", "itemName", "unitPrice", "quantity", "totalAmount", "isPlanned", "category", "createdAt", "uid"]
+    },
+    "DashboardComment": {
+      "title": "DashboardComment",
+      "description": "Monthly comment for dashboard analysis.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "year": { "type": "integer" },
+        "month": { "type": "integer" },
+        "comment": { "type": "string" },
+        "updatedAt": { "type": "string" },
+        "uid": { "type": "string" }
+      },
+      "required": ["id", "year", "month", "comment", "updatedAt", "uid"]
     }
   },
   "firestore": {
     "costs/{costId}": {
       "schema": "CostItem",
       "description": "Collection of all budget and usage items."
+    },
+    "dashboard_comments/{commentId}": {
+      "schema": "DashboardComment",
+      "description": "Monthly comments for dashboard analysis."
     }
   }
 }

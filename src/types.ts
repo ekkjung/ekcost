@@ -1,4 +1,4 @@
-export type CostCategory = '공정' | '설비' | '인건비' | '재료비' | '기타';
+export type CostCategory = '수선비' | '소모품비' | '기타경비' | '공정' | '설비' | '인건비' | '재료비' | '기타';
 
 export interface CostItem {
   id: string;
@@ -7,6 +7,7 @@ export interface CostItem {
   day: number;
   category: CostCategory;
   isPlanned: boolean;
+  isIncludedInPlan: boolean;
   processModel?: string;
   processName?: string;
   equipmentName?: string;

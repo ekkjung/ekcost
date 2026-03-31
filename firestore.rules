@@ -49,8 +49,8 @@ service cloud.firestore {
     }
 
     function isValidCostItem(data) {
-      let requiredFields = ['id', 'year', 'month', 'day', 'itemName', 'unitPrice', 'quantity', 'totalAmount', 'isPlanned', 'category', 'createdAt'];
-      let allowedFields = requiredFields.concat(['processModel', 'processName', 'equipmentName', 'itemNumber', 'supplier', 'manufacturer', 'uid']);
+      let requiredFields = ['id', 'year', 'month', 'day', 'itemName', 'unitPrice', 'quantity', 'totalAmount', 'isPlanned', 'isIncludedInPlan', 'category', 'createdAt', 'uid'];
+      let allowedFields = requiredFields.concat(['processModel', 'processName', 'equipmentName', 'itemNumber', 'supplier', 'manufacturer']);
       
       return data.keys().hasAll(requiredFields) &&
              data.keys().hasOnly(allowedFields) &&
@@ -59,13 +59,14 @@ service cloud.firestore {
              data.month is int && data.month >= 1 && data.month <= 12 &&
              data.day is int && data.day >= 1 && data.day <= 31 &&
              data.itemName is string && data.itemName.size() > 0 && data.itemName.size() <= 200 &&
-             data.unitPrice is number &&
-             data.quantity is number &&
-             data.totalAmount is number &&
+             (data.unitPrice is int || data.unitPrice is float) &&
+             (data.quantity is int || data.quantity is float) &&
+             (data.totalAmount is int || data.totalAmount is float) &&
              data.isPlanned is bool &&
+             data.isIncludedInPlan is bool &&
              data.category in ['공정', '설비', '인건비', '재료비', '기타'] &&
              data.createdAt is string && data.createdAt.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$") &&
-             (!('uid' in data) || data.uid is string);
+             data.uid is string;
     }
 
     // ===============================================================
@@ -77,15 +78,20 @@ service cloud.firestore {
       allow read: if true;
       
       // Allow anyone to create valid items
-      allow create: if isValidCostItem(request.resource.data);
+      allow create: if isAuthenticated() && isValidCostItem(request.resource.data);
       
       // Allow anyone to update items, ensuring schema is maintained
-      allow update: if isValidCostItem(request.resource.data) &&
+      allow update: if isAuthenticated() && isValidCostItem(request.resource.data) &&
                     request.resource.data.id == resource.data.id &&
                     request.resource.data.createdAt == resource.data.createdAt;
       
       // Allow anyone to delete items
       allow delete: if true;
+    }
+
+    match /dashboard_comments/{commentId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
     }
 
     match /users/{userId} {
