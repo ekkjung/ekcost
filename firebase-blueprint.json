@@ -1,0 +1,36 @@
+{
+  "entities": {
+    "CostItem": {
+      "title": "CostItem",
+      "description": "Represents a budget plan or actual usage item.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "year": { "type": "integer" },
+        "month": { "type": "integer" },
+        "day": { "type": "integer" },
+        "processModel": { "type": "string" },
+        "processName": { "type": "string" },
+        "equipmentName": { "type": "string" },
+        "itemName": { "type": "string" },
+        "itemNumber": { "type": "string" },
+        "supplier": { "type": "string" },
+        "manufacturer": { "type": "string" },
+        "unitPrice": { "type": "number" },
+        "quantity": { "type": "number" },
+        "totalAmount": { "type": "number" },
+        "isPlanned": { "type": "boolean" },
+        "category": { "type": "string", "enum": ["공정", "설비", "인건비", "재료비", "기타"] },
+        "createdAt": { "type": "string" },
+        "uid": { "type": "string" }
+      },
+      "required": ["id", "year", "month", "day", "itemName", "unitPrice", "quantity", "totalAmount", "isPlanned", "category", "createdAt", "uid"]
+    }
+  },
+  "firestore": {
+    "costs/{costId}": {
+      "schema": "CostItem",
+      "description": "Collection of all budget and usage items."
+    }
+  }
+}

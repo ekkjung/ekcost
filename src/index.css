@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Malgun Gothic", "Microsoft NeoGothic", "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+h1, h2, h3, .font-bold {
+  font-weight: 700 !important;
+}
+
+.item-name {
+  font-weight: 700 !important;
+}

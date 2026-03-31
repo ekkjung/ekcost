@@ -1,0 +1,96 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: costs
+    // Document ID: randomUUID
+    // Fields:
+    //   - id: string (required) - unique identifier
+    //   - year: number (required) - year of the item
+    //   - month: number (required) - month of the item
+    //   - day: number (required) - day of the item
+    //   - itemName: string (required) - name of the item
+    //   - unitPrice: number (required) - price per unit
+    //   - quantity: number (required) - number of units
+    //   - totalAmount: number (required) - unitPrice * quantity
+    //   - isPlanned: boolean (required) - true for plan, false for actual usage
+    //   - category: string (required) - enum: ['공정', '설비', '인건비', '재료비', '기타']
+    //   - createdAt: string (required) - ISO 8601 timestamp
+    //   - uid: string (required) - user ID of the creator
+    //   - processModel: string (optional)
+    //   - processName: string (optional)
+    //   - equipmentName: string (optional)
+    //   - itemNumber: string (optional)
+    //   - supplier: string (optional)
+    //   - manufacturer: string (optional)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "ekkyhjung@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidCostItem(data) {
+      let requiredFields = ['id', 'year', 'month', 'day', 'itemName', 'unitPrice', 'quantity', 'totalAmount', 'isPlanned', 'category', 'createdAt', 'uid'];
+      let allowedFields = requiredFields.concat(['processModel', 'processName', 'equipmentName', 'itemNumber', 'supplier', 'manufacturer']);
+      
+      return data.keys().hasAll(requiredFields) &&
+             data.keys().hasOnly(allowedFields) &&
+             data.id is string && data.id.size() > 0 &&
+             data.year is int && data.year >= 2000 && data.year <= 2100 &&
+             data.month is int && data.month >= 1 && data.month <= 12 &&
+             data.day is int && data.day >= 1 && data.day <= 31 &&
+             data.itemName is string && data.itemName.size() > 0 && data.itemName.size() <= 200 &&
+             data.unitPrice is number &&
+             data.quantity is number &&
+             data.totalAmount is number &&
+             data.isPlanned is bool &&
+             data.category in ['공정', '설비', '인건비', '재료비', '기타'] &&
+             data.createdAt is string && data.createdAt.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$") &&
+             data.uid is string;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /costs/{costId} {
+      // Allow anyone to read all costs
+      allow read: if true;
+      
+      // Allow anyone to create valid items
+      allow create: if isValidCostItem(request.resource.data);
+      
+      // Allow anyone to update items, ensuring schema is maintained
+      allow update: if isValidCostItem(request.resource.data) &&
+                    request.resource.data.id == resource.data.id &&
+                    request.resource.data.createdAt == resource.data.createdAt;
+      
+      // Allow anyone to delete items
+      allow delete: if true;
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isAdmin();
+    }
+  }
+}
