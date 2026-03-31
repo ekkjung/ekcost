@@ -210,7 +210,7 @@ export function FullScreenListView({ type, items, onClose, formatCurrency, onDel
   };
 
   return (
-    <div className="fixed inset-0 bg-white z-[100] flex flex-col animate-in slide-in-from-right duration-300">
+    <div className="w-full h-full bg-white flex flex-col">
       <header className="border-b border-slate-200 p-6 flex justify-between items-center bg-white sticky top-0 z-10">
         <div className="flex items-center gap-4">
           <button 
@@ -330,6 +330,7 @@ export function FullScreenListView({ type, items, onClose, formatCurrency, onDel
                   { label: '계정항목', key: 'category' },
                   { label: '공정명', key: 'processName' },
                   { label: '설비명', key: 'equipmentName' },
+                  ...(type === 'usage' ? [{ label: '계획', key: 'isIncludedInPlan' }] : []),
                   { label: '품명', key: 'itemName' },
                   ...(type === 'plan' ? [] : [
                     { label: '품번', key: 'itemNumber' },
@@ -393,6 +394,16 @@ export function FullScreenListView({ type, items, onClose, formatCurrency, onDel
                     </td>
                     <td className="p-3 text-xs font-semibold text-slate-700">{item.processName || '-'}</td>
                     <td className="p-3 text-xs text-slate-500">{item.equipmentName || '-'}</td>
+                    {type === 'usage' && (
+                      <td className="p-3">
+                        <span className={cn(
+                          "text-[10px] px-2 py-0.5 rounded font-bold uppercase",
+                          item.isIncludedInPlan ? "bg-blue-50 text-blue-600" : "bg-slate-100 text-slate-400"
+                        )}>
+                          {item.isIncludedInPlan ? '포함' : '미포함'}
+                        </span>
+                      </td>
+                    )}
                     <td className="p-3">
                       <div className="text-sm font-bold text-slate-900 item-name">{item.itemName}</div>
                     </td>
@@ -444,9 +455,7 @@ export function FullScreenListView({ type, items, onClose, formatCurrency, onDel
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (window.confirm('이 항목을 삭제하시겠습니까?')) {
-                              onDeleteItem(item.id);
-                            }
+                            onDeleteItem(item.id);
                           }}
                           className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
                         >

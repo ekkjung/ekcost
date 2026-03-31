@@ -180,7 +180,7 @@ function AppContent() {
       totalAmount: 0,
       isIncludedInPlan: true,
       createdAt: new Date().toISOString(),
-      uid: auth.currentUser?.uid || 'anonymous',
+      uid: auth.currentUser?.uid || 'public',
     });
     setEditingId(null);
     setIsAdding(true);
@@ -192,16 +192,12 @@ function AppContent() {
 
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth.currentUser) {
-      toast.error('로그인이 필요합니다. 사이드바에서 로그인해 주세요.');
-      return;
-    }
     try {
       const docRef = editingId ? doc(db, 'costs', editingId) : doc(collection(db, 'costs'));
       const finalItem = { 
         ...newItem, 
         id: docRef.id,
-        uid: auth.currentUser.uid,
+        uid: auth.currentUser?.uid || 'public',
         totalAmount: newItem.quantity * newItem.unitPrice,
         updatedAt: new Date().toISOString()
       };
@@ -356,7 +352,7 @@ function AppContent() {
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase ml-1">당해년도 계획 포함 여부</label>
+                  <label className="text-xs font-bold text-slate-500 uppercase ml-1">계획</label>
                   <select 
                     value={newItem.isIncludedInPlan ? 'included' : 'excluded'}
                     onChange={(e) => setNewItem({ ...newItem, isIncludedInPlan: e.target.value === 'included' })}

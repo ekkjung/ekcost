@@ -51,7 +51,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ items }) => {
   };
 
   const filteredItems = useMemo(() => {
-    return items.filter(item => item.year === year && item.month === month);
+    return items.filter(item => {
+      const matchYear = year === 0 || item.year === year;
+      const matchMonth = month === 0 || item.month === month;
+      return matchYear && matchMonth;
+    });
   }, [items, year, month]);
 
   const plannedVsActual = useMemo(() => {
@@ -87,6 +91,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ items }) => {
             onChange={(e) => setYear(Number(e.target.value))} 
             className="bg-slate-50 border-none rounded-2xl px-4 py-2.5 text-sm font-bold focus:ring-2 focus:ring-blue-100 outline-none cursor-pointer"
           >
+            <option value={0}>전체 년도</option>
             {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}년</option>)}
           </select>
           <select 
@@ -94,6 +99,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ items }) => {
             onChange={(e) => setMonth(Number(e.target.value))} 
             className="bg-slate-50 border-none rounded-2xl px-4 py-2.5 text-sm font-bold focus:ring-2 focus:ring-blue-100 outline-none cursor-pointer"
           >
+            <option value={0}>전체 월</option>
             {Array.from({ length: 12 }, (_, i) => i + 1).map(m => <option key={m} value={m}>{m}월</option>)}
           </select>
         </div>
@@ -157,7 +163,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ items }) => {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h3 className="text-lg font-bold text-slate-800">초과 사유 및 분석 코멘트</h3>
-            <p className="text-sm text-slate-400 mt-1">{year}년 {month}월 분석 내용입니다.</p>
+            <p className="text-sm text-slate-400 mt-1">
+              {year === 0 ? '전체 년도' : `${year}년`} {month === 0 ? '전체 월' : `${month}월`} 분석 내용입니다.
+            </p>
           </div>
           <button 
             onClick={handleSaveComment}

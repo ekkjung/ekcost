@@ -74,29 +74,15 @@ service cloud.firestore {
     // ===============================================================
 
     match /costs/{costId} {
-      // Allow anyone to read all costs
-      allow read: if true;
-      
-      // Allow anyone to create valid items
-      allow create: if isAuthenticated() && isValidCostItem(request.resource.data);
-      
-      // Allow anyone to update items, ensuring schema is maintained
-      allow update: if isAuthenticated() && isValidCostItem(request.resource.data) &&
-                    request.resource.data.id == resource.data.id &&
-                    request.resource.data.createdAt == resource.data.createdAt;
-      
-      // Allow anyone to delete items
-      allow delete: if true;
+      allow read, write: if true;
     }
 
     match /dashboard_comments/{commentId} {
-      allow read: if true;
-      allow write: if isAuthenticated();
+      allow read, write: if true;
     }
 
     match /users/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow write: if isAdmin();
+      allow read, write: if true;
     }
   }
 }

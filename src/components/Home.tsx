@@ -1,7 +1,8 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { CostItem } from '../types';
-import { TrendingUp, TrendingDown, Wallet } from 'lucide-react';
+import { TrendingUp, TrendingDown, Wallet, Calendar } from 'lucide-react';
+import { cn } from '../lib/utils';
 
 interface HomeProps {
   items: CostItem[];
@@ -9,33 +10,83 @@ interface HomeProps {
 }
 
 export const Home: React.FC<HomeProps> = ({ items, formatCurrency }) => {
-  const currentYear = new Date().getFullYear();
+  const [year, setYear] = useState(new Date().getFullYear());
+  const [month, setMonth] = useState(0); // 0 for All
 
   const stats = useMemo(() => {
-    const planned = items.filter(i => i.isPlanned && i.year === currentYear).reduce((sum, i) => sum + i.totalAmount, 0);
-    const actual = items.filter(i => !i.isPlanned && i.year === currentYear).reduce((sum, i) => sum + i.totalAmount, 0);
+    const filtered = items.filter(i => {
+      const matchYear = year === 0 || i.year === year;
+      const matchMonth = month === 0 || i.month === month;
+      return matchYear && matchMonth;
+    });
+
+    const planned = filtered.filter(i => i.isPlanned).reduce((sum, i) => sum + i.totalAmount, 0);
+    const actual = filtered.filter(i => !i.isPlanned).reduce((sum, i) => sum + i.totalAmount, 0);
+    const remaining = planned - actual;
+    const percentage = planned > 0 ? (remaining / planned) * 100 : 0;
+    
     return {
       planned,
       actual,
-      remaining: planned - actual
+      remaining,
+      percentage
     };
-  }, [items, currentYear]);
+  }, [items, year, month]);
 
   const yearlyData = useMemo(() => {
+    if (month !== 0) {
+      // If a specific month is selected, show data for that month only or maybe compare with previous/next?
+      // Let's keep showing 12 months but for the selected year.
+      // If year is 0, this might be huge.
+      // Usually yearlyData is for a specific year.
+    }
+    
+    const targetYear = year === 0 ? new Date().getFullYear() : year;
+
     return Array.from({ length: 12 }, (_, i) => {
-      const month = i + 1;
-      const planned = items.filter(item => item.isPlanned && item.year === currentYear && item.month === month).reduce((sum, item) => sum + item.totalAmount, 0);
-      const actual = items.filter(item => !item.isPlanned && item.year === currentYear && item.month === month).reduce((sum, item) => sum + item.totalAmount, 0);
+      const m = i + 1;
+      const planned = items.filter(item => item.isPlanned && item.year === targetYear && item.month === m).reduce((sum, item) => sum + item.totalAmount, 0);
+      const actual = items.filter(item => !item.isPlanned && item.year === targetYear && item.month === m).reduce((sum, item) => sum + item.totalAmount, 0);
       return {
-        name: `${month}월`,
+        name: `${m}월`,
         계획: planned,
         실제: actual
       };
     });
-  }, [items, currentYear]);
+  }, [items, year]);
 
   return (
     <div className="p-8 space-y-8">
+      <div className="flex justify-between items-center bg-white p-6 rounded-[32px] shadow-sm border border-slate-100">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
+            <Calendar className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-slate-900">현황 요약</h2>
+            <p className="text-xs text-slate-400">선택한 기간의 예산 집행 현황입니다.</p>
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <select 
+            value={year} 
+            onChange={(e) => setYear(Number(e.target.value))} 
+            className="bg-slate-50 border-none rounded-2xl px-4 py-2.5 text-sm font-bold focus:ring-2 focus:ring-blue-100 outline-none cursor-pointer"
+          >
+            <option value={0}>전체 년도</option>
+            {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}년</option>)}
+          </select>
+          <select 
+            value={month} 
+            onChange={(e) => setMonth(Number(e.target.value))} 
+            className="bg-slate-50 border-none rounded-2xl px-4 py-2.5 text-sm font-bold focus:ring-2 focus:ring-blue-100 outline-none cursor-pointer"
+          >
+            <option value={0}>전체 월</option>
+            {Array.from({ length: 12 }, (_, i) => i + 1).map(m => <option key={m} value={m}>{m}월</option>)}
+          </select>
+        </div>
+      </div>
+
       <div className="grid grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
           <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
@@ -61,13 +112,28 @@ export const Home: React.FC<HomeProps> = ({ items, formatCurrency }) => {
           </div>
           <div>
             <p className="text-sm text-slate-500 font-bold">현재 남은 금액</p>
-            <p className="text-2xl font-bold text-slate-900">{formatCurrency(stats.remaining)}</p>
+            <div className="flex items-baseline gap-2">
+              <p className={cn(
+                "text-2xl font-bold",
+                stats.remaining >= 0 ? "text-slate-900" : "text-rose-600"
+              )}>
+                {formatCurrency(stats.remaining)}
+              </p>
+              <span className={cn(
+                "text-xs font-bold px-2 py-0.5 rounded-full",
+                stats.percentage >= 0 ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
+              )}>
+                {stats.percentage.toFixed(1)}%
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
       <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
-        <h3 className="text-lg font-bold mb-6">년간 예산 대비 사용량</h3>
+        <h3 className="text-lg font-bold mb-6">
+          {year === 0 ? '년간' : `${year}년`} 예산 대비 사용량
+        </h3>
         <div className="h-[400px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={yearlyData}>
