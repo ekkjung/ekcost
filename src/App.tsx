@@ -20,9 +20,6 @@ import {
   Layers,
   Activity,
   X,
-  LogIn,
-  LogOut,
-  User as UserIcon,
   FileDown,
   FileUp,
   ArrowLeft,
@@ -49,12 +46,7 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { CostItem, CostCategory } from './types';
 import { 
-  auth, 
   db, 
-  googleProvider, 
-  signInWithPopup, 
-  signOut, 
-  onAuthStateChanged, 
   collection, 
   doc, 
   setDoc, 
@@ -64,7 +56,6 @@ import {
   orderBy,
   handleFirestoreError,
   OperationType,
-  User,
   writeBatch
 } from './firebase';
 
@@ -137,8 +128,6 @@ const YEARS = [2024, 2025, 2026, 2027];
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
 
 function AppContent() {
-  const [user, setUser] = useState<User | null>(null);
-  const [isAuthReady, setIsAuthReady] = useState(false);
   const [items, setItems] = useState<CostItem[]>([]);
   const [fullScreenView, setFullScreenView] = useState<'none' | 'plan' | 'usage'>('none');
 
@@ -168,34 +157,7 @@ function AppContent() {
     isPlanned: true,
   });
 
-  const [isGoogleAuthenticated, setIsGoogleAuthenticated] = useState(false);
-
   useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      const origin = event.origin;
-      if (!origin.endsWith('.run.app') && !origin.includes('localhost')) {
-        return;
-      }
-      if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
-        setIsGoogleAuthenticated(true);
-        toast.success('Google 서비스 인증에 성공했습니다.');
-      }
-    };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setIsAuthReady(true);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (!isAuthReady || !user) return;
-
     const q = query(collection(db, 'costs'), orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as CostItem));
@@ -205,7 +167,7 @@ function AppContent() {
     });
 
     return () => unsubscribe();
-  }, [isAuthReady, user]);
+  }, []);
 
   useEffect(() => {
     setNewItem(prev => ({
@@ -226,33 +188,7 @@ function AppContent() {
     }
   }, [newItem.isPlanned, newItem.month]);
 
-  const isAdmin = user?.email === 'ekkyhjung@gmail.com';
-
-  const handleLogin = async () => {
-    try {
-      // Ensure we are not calling this multiple times
-      await signInWithPopup(auth, googleProvider);
-    } catch (error: any) {
-      console.error("Login failed", error);
-      if (error.code === 'auth/popup-blocked') {
-        toast.error("팝업이 차단되었습니다. 브라우저 설정에서 팝업을 허용해주세요.");
-      } else if (error.code === 'auth/cancelled-popup-request') {
-        // User closed the popup, no need for error message
-      } else if (error.code === 'auth/popup-closed-by-user') {
-        // User closed the popup
-      } else {
-        toast.error(`로그인 실패: ${error.message}`);
-      }
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error("Logout failed", error);
-    }
-  };
+  const isAdmin = true;
 
   const handleMigrateData = async () => {
     if (!isAdmin) return;
@@ -282,20 +218,16 @@ function AppContent() {
 
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
     
     const path = 'costs';
     try {
-      let itemToSync: CostItem | null = null;
       if (editingId) {
         const docRef = doc(db, path, editingId);
         const updatedItem = {
           ...newItem,
-          uid: user.uid,
           id: editingId,
         } as CostItem;
         await setDoc(docRef, updatedItem, { merge: true });
-        itemToSync = updatedItem;
       } else {
         const id = crypto.randomUUID();
         const docRef = doc(db, path, id);
@@ -317,23 +249,8 @@ function AppContent() {
           totalAmount: newItem.totalAmount!,
           isPlanned: newItem.isPlanned!,
           createdAt: new Date().toISOString(),
-          uid: user.uid,
         };
         await setDoc(docRef, item);
-        itemToSync = item;
-      }
-
-      // Sync with Google Sheets if it's a plan item
-      if (itemToSync && itemToSync.isPlanned) {
-        try {
-          await fetch('/api/sheets/append', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ items: [itemToSync] })
-          });
-        } catch (err) {
-          console.warn('Failed to sync with Google Sheets on add/edit', err);
-        }
       }
 
       setIsAdding(false);
@@ -431,7 +348,6 @@ function AppContent() {
   };
 
   const startEdit = (item: CostItem) => {
-    if (user?.uid !== item.uid) return;
     setNewItem(item);
     setEditingId(item.id);
     setIsAdding(true);
@@ -560,42 +476,6 @@ function AppContent() {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            {user ? (
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-100">
-                  {user.photoURL ? (
-                    <img src={user.photoURL} alt={user.displayName || ''} className="w-6 h-6 rounded-full" />
-                  ) : (
-                    <UserIcon className="w-4 h-4 text-slate-400" />
-                  )}
-                  <span className="text-xs font-bold text-slate-600">{user.displayName}</span>
-                </div>
-                <button 
-                  onClick={handleLogout}
-                  className="p-2.5 text-slate-500 hover:bg-slate-100 rounded-xl transition-all border border-slate-200"
-                  title="로그아웃"
-                >
-                  <LogOut className="w-5 h-5" />
-                </button>
-              </div>
-            ) : (
-              <button 
-                onClick={handleLogin}
-                className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all"
-              >
-                <LogIn className="w-4 h-4" />
-                로그인
-              </button>
-            )}
-            {isAdmin && (
-              <button 
-                onClick={handleMigrateData}
-                className="p-2.5 text-amber-600 hover:bg-amber-50 rounded-xl transition-all border border-amber-200"
-                title="데이터 마이그레이션 (1-3월 -> 2027년)"
-              >
-                <Activity className="w-5 h-5" />
-              </button>
-            )}
             <button 
               onClick={handlePrint}
               className="p-2.5 text-slate-500 hover:bg-slate-100 rounded-xl transition-all border border-slate-200"
@@ -613,28 +493,6 @@ function AppContent() {
           </div>
         </div>
       </header>
-
-      {!user && isAuthReady && (
-        <div className="max-w-7xl mx-auto px-6 mt-8">
-          <div className="bg-blue-50 border border-blue-100 p-6 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm">
-                <LogIn className="text-blue-500 w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-blue-900">데이터 동기화를 위해 로그인하세요</h3>
-                <p className="text-sm text-blue-700">팀과 실시간으로 반도체 원장을 공유하려면 로그인하세요.</p>
-              </div>
-            </div>
-            <button 
-              onClick={handleLogin}
-              className="bg-blue-600 text-white px-8 py-3 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200"
-            >
-              Google로 로그인
-            </button>
-          </div>
-        </div>
-      )}
 
       <main className="max-w-7xl mx-auto p-6 space-y-8">
         {/* Stats Section */}
@@ -889,16 +747,11 @@ function AppContent() {
           type={fullScreenView} 
           items={items} 
           onClose={() => setFullScreenView('none')} 
-          user={user}
-          isAdmin={isAdmin}
           formatCurrency={formatCurrency}
           onDeleteItem={deleteItem}
           onEditItem={handleEdit}
           onAddNew={() => handleAddNew(fullScreenView === 'plan')}
-          isGoogleAuthenticated={isGoogleAuthenticated}
-          setIsGoogleAuthenticated={setIsGoogleAuthenticated}
           onCompleteUse={async (item) => {
-            if (!user) return;
             const newDocRef = doc(collection(db, 'costs'));
             try {
               const newItem = {
@@ -914,7 +767,6 @@ function AppContent() {
             }
           }}
           onRestorePlan={async (item) => {
-            if (!user) return;
             const newDocRef = doc(collection(db, 'costs'));
             try {
               const newItem = {
@@ -1159,27 +1011,21 @@ interface FullScreenListViewProps {
   type: 'plan' | 'usage';
   items: CostItem[];
   onClose: () => void;
-  user: User | null;
-  isAdmin: boolean;
   formatCurrency: (value: number) => string;
   onDeleteItem: (id: string) => Promise<void>;
   onEditItem: (item: CostItem) => void;
   onAddNew: () => void;
   onCompleteUse: (item: CostItem) => Promise<void>;
   onRestorePlan: (item: CostItem) => Promise<void>;
-  isGoogleAuthenticated: boolean;
-  setIsGoogleAuthenticated: (val: boolean) => void;
 }
 
-function FullScreenListView({ type, items, onClose, user, isAdmin, formatCurrency, onDeleteItem, onEditItem, onAddNew, onCompleteUse, onRestorePlan, isGoogleAuthenticated, setIsGoogleAuthenticated }: FullScreenListViewProps) {
+function FullScreenListView({ type, items, onClose, formatCurrency, onDeleteItem, onEditItem, onAddNew, onCompleteUse, onRestorePlan }: FullScreenListViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
   const [sortConfig, setSortConfig] = useState<{ key: keyof CostItem, direction: 'asc' | 'desc' } | null>({ key: 'year', direction: 'desc' });
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isUploading, setIsUploading] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 50;
 
   const filteredItems = useMemo(() => {
     let result = items.filter(item => {
@@ -1214,6 +1060,8 @@ function FullScreenListView({ type, items, onClose, user, isAdmin, formatCurrenc
     return result;
   }, [items, type, searchTerm, sortConfig, selectedMonth]);
 
+  const itemsPerPage = 50;
+  const [currentPage, setCurrentPage] = useState(1);
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
   const currentItems = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -1257,92 +1105,6 @@ function FullScreenListView({ type, items, onClose, user, isAdmin, formatCurrenc
     XLSX.writeFile(workbook, `EK_생산기술팀_${type === 'plan' ? '계획' : '사용'}_현황_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
-  const [isSyncing, setIsSyncing] = useState(false);
-
-  const handleGoogleAuth = async () => {
-    try {
-      const response = await fetch('/api/auth/google/url');
-      if (!response.ok) throw new Error('Failed to get auth URL');
-      const { url } = await response.json();
-
-      const authWindow = window.open(
-        url,
-        'google_oauth_popup',
-        'width=600,height=700'
-      );
-
-      if (!authWindow) {
-        alert('팝업이 차단되었습니다. 팝업을 허용해주세요.');
-      }
-    } catch (error) {
-      console.error('Google Auth error:', error);
-      alert('인증 URL을 가져오는데 실패했습니다.');
-    }
-  };
-
-  useEffect(() => {
-    // Message listener moved to parent AppContent
-  }, [isSyncing]);
-
-  const handleSyncWithSheets = async () => {
-    if (type !== 'plan') return;
-    setIsSyncing(true);
-    try {
-      const response = await fetch('/api/sheets/sync');
-      if (response.status === 401) {
-        handleGoogleAuth();
-        return;
-      }
-      if (!response.ok) throw new Error('Failed to sync with sheets');
-      
-      const { items: sheetItems } = await response.json();
-      setIsGoogleAuthenticated(true);
-      
-      // Basic deduplication logic: check if an item with same key fields exists in Firestore
-      // Key fields: year, month, day, itemName, quantity, unitPrice
-      const existingItems = items.filter(i => i.isPlanned);
-      const newItemsToUpload: CostItem[] = [];
-
-      for (const sItem of sheetItems) {
-        const exists = existingItems.some(e => 
-          e.year === sItem.year &&
-          e.month === sItem.month &&
-          e.day === sItem.day &&
-          e.itemName === sItem.itemName &&
-          e.quantity === sItem.quantity &&
-          e.unitPrice === sItem.unitPrice
-        );
-
-        if (!exists) {
-          const id = crypto.randomUUID();
-          const newItem: CostItem = {
-            ...sItem,
-            id,
-            uid: user?.uid || 'anonymous',
-            createdAt: sItem.createdAt || new Date().toISOString(),
-            isPlanned: true
-          };
-          newItemsToUpload.push(newItem);
-        }
-      }
-
-      if (newItemsToUpload.length > 0) {
-        const path = 'costs';
-        for (const item of newItemsToUpload) {
-          await setDoc(doc(db, path, item.id), item);
-        }
-        alert(`${newItemsToUpload.length}개의 새로운 항목이 구글 시트에서 동기화되었습니다.`);
-      } else {
-        alert('이미 최신 상태입니다.');
-      }
-    } catch (error) {
-      console.error('Sync error:', error);
-      alert('구글 시트 동기화 중 오류가 발생했습니다.');
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -1366,7 +1128,6 @@ function FullScreenListView({ type, items, onClose, user, isAdmin, formatCurrenc
         // Update Firestore for each item
         const path = 'costs';
         let successCount = 0;
-        const uploadedItems: CostItem[] = [];
         
         for (const row of data) {
           try {
@@ -1397,35 +1158,13 @@ function FullScreenListView({ type, items, onClose, user, isAdmin, formatCurrenc
               quantity: Number(row['수량']) || 0,
               unitPrice: Number(row['단가']) || 0,
               totalAmount: (Number(row['수량']) || 0) * (Number(row['단가']) || 0),
-              createdAt: new Date().toISOString(),
-              uid: user?.uid || 'anonymous',
+              createdAt: new Date().toISOString()
             };
             
             await setDoc(docRef, item);
             successCount++;
-            uploadedItems.push(item);
           } catch (err) {
             console.error("Row upload failed", err, row);
-          }
-        }
-
-        // If it's a plan upload, also append to Google Sheets
-        if (type === 'plan' && uploadedItems.length > 0) {
-          try {
-            const appendResponse = await fetch('/api/sheets/append', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ items: uploadedItems })
-            });
-            if (appendResponse.status === 401) {
-              // We don't want to block the user with a popup here if they aren't authed,
-              // but we should inform them.
-              console.warn('Google Sheets append failed: Not authenticated');
-            } else if (!appendResponse.ok) {
-              console.error('Failed to append to Google Sheets');
-            }
-          } catch (err) {
-            console.error('Error appending to Google Sheets', err);
           }
         }
 
@@ -1509,19 +1248,6 @@ function FullScreenListView({ type, items, onClose, user, isAdmin, formatCurrenc
               className="pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-100 outline-none w-64 transition-all"
             />
           </div>
-          {type === 'plan' && (
-            <button 
-              onClick={handleSyncWithSheets}
-              disabled={isSyncing}
-              className={cn(
-                "flex items-center gap-2 px-4 py-2.5 bg-indigo-50 text-indigo-600 rounded-xl text-sm font-bold hover:bg-indigo-100 transition-all border border-indigo-100",
-                isSyncing && "opacity-50 cursor-not-allowed"
-              )}
-            >
-              <Activity className={cn("w-4 h-4", isSyncing && "animate-spin")} />
-              {isSyncing ? '동기화 중...' : '구글 시트 동기화'}
-            </button>
-          )}
           <button 
             onClick={handleDownloadExcel}
             className="flex items-center gap-2 px-4 py-2.5 bg-emerald-50 text-emerald-600 rounded-xl text-sm font-bold hover:bg-emerald-100 transition-all border border-emerald-100"

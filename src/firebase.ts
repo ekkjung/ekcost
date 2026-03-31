@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
+import { getAuth } from 'firebase/auth';
 import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy, getDocFromServer, getDocs, writeBatch } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
@@ -9,8 +9,6 @@ export const auth = getAuth(app);
 export const db = firebaseConfig.firestoreDatabaseId && firebaseConfig.firestoreDatabaseId !== '(default)' 
   ? getFirestore(app, firebaseConfig.firestoreDatabaseId) 
   : getFirestore(app);
-export const googleProvider = new GoogleAuthProvider();
-googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 // Error Handling Spec for Firestore Operations
 export enum OperationType {
@@ -76,5 +74,4 @@ async function testConnection() {
 }
 testConnection();
 
-export { signInWithPopup, signOut, onAuthStateChanged, collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, writeBatch };
-export type { User };
+export { collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy, getDocs, writeBatch };
