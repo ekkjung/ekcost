@@ -84,6 +84,7 @@ export function FullScreenListView({ type, items, onClose, formatCurrency, onDel
       '일': item.day,
       '계정항목': item.category,
       '계획여부': item.isPlanned ? '계획' : '사용',
+      '계획': item.isIncludedInPlan ? '포함' : '미포함',
       '공정모델': item.processModel || '',
       '공정명': item.processName || '',
       '설비명': item.equipmentName || '',
@@ -130,10 +131,13 @@ export function FullScreenListView({ type, items, onClose, formatCurrency, onDel
             const id = crypto.randomUUID();
             const docRef = doc(db, path, id);
             
-            const excelIsPlanned = row['계획여부'];
-            const isPlanned = excelIsPlanned !== undefined 
-              ? excelIsPlanned === '계획' 
-              : type === 'plan';
+            const isPlanned = type === 'plan';
+            
+            // '계획' 컬럼에서 포함/미포함 여부 확인 (사용 리스트용)
+            const excelIsIncluded = row['계획'];
+            const isIncludedInPlan = excelIsIncluded !== undefined 
+              ? (excelIsIncluded === '포함' || excelIsIncluded === '당해년도 예산 포함')
+              : (type === 'plan' ? true : false);
 
             const item: CostItem = {
               id,
@@ -152,7 +156,7 @@ export function FullScreenListView({ type, items, onClose, formatCurrency, onDel
               quantity: Number(row['수량']) || 0,
               unitPrice: Number(row['단가']) || 0,
               totalAmount: (Number(row['수량']) || 0) * (Number(row['단가']) || 0),
-              isIncludedInPlan: false,
+              isIncludedInPlan: isIncludedInPlan,
               createdAt: new Date().toISOString(),
               uid: auth.currentUser?.uid || 'anonymous',
             };
