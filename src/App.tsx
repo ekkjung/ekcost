@@ -220,7 +220,8 @@ function AppContent() {
     e.preventDefault();
     
     const path = 'costs';
-    try {
+    
+    const savePromise = async () => {
       if (editingId) {
         const docRef = doc(db, path, editingId);
         const updatedItem = {
@@ -252,33 +253,41 @@ function AppContent() {
         };
         await setDoc(docRef, item);
       }
+    };
 
-      setIsAdding(false);
-      setEditingId(null);
-      
-      const currentYear = new Date().getFullYear();
-      const currentMonth = new Date().getMonth() + 1;
-      
-      setNewItem({
-        year: currentYear,
-        month: currentMonth,
-        day: new Date().getDate(),
-        category: '공정',
-        itemName: '',
-        processModel: '',
-        processName: '',
-        equipmentName: '',
-        itemNumber: '',
-        supplier: '',
-        manufacturer: '',
-        quantity: 1,
-        unitPrice: 0,
-        totalAmount: 0,
-        isPlanned: true,
-      });
-    } catch (error) {
-      handleFirestoreError(error, editingId ? OperationType.UPDATE : OperationType.CREATE, path);
-    }
+    toast.promise(savePromise(), {
+      loading: '저장 중...',
+      success: () => {
+        setIsAdding(false);
+        setEditingId(null);
+        
+        const currentYear = new Date().getFullYear();
+        const currentMonth = new Date().getMonth() + 1;
+        
+        setNewItem({
+          year: currentYear,
+          month: currentMonth,
+          day: new Date().getDate(),
+          category: '공정',
+          itemName: '',
+          processModel: '',
+          processName: '',
+          equipmentName: '',
+          itemNumber: '',
+          supplier: '',
+          manufacturer: '',
+          quantity: 1,
+          unitPrice: 0,
+          totalAmount: 0,
+          isPlanned: true,
+        });
+        return '성공적으로 저장되었습니다.';
+      },
+      error: (error) => {
+        handleFirestoreError(error, editingId ? OperationType.UPDATE : OperationType.CREATE, path);
+        return '저장 중 오류가 발생했습니다.';
+      }
+    });
   };
 
   const handleEdit = (item: CostItem) => {

@@ -49,8 +49,8 @@ service cloud.firestore {
     }
 
     function isValidCostItem(data) {
-      let requiredFields = ['id', 'year', 'month', 'day', 'itemName', 'unitPrice', 'quantity', 'totalAmount', 'isPlanned', 'category', 'createdAt', 'uid'];
-      let allowedFields = requiredFields.concat(['processModel', 'processName', 'equipmentName', 'itemNumber', 'supplier', 'manufacturer']);
+      let requiredFields = ['id', 'year', 'month', 'day', 'itemName', 'unitPrice', 'quantity', 'totalAmount', 'isPlanned', 'category', 'createdAt'];
+      let allowedFields = requiredFields.concat(['processModel', 'processName', 'equipmentName', 'itemNumber', 'supplier', 'manufacturer', 'uid']);
       
       return data.keys().hasAll(requiredFields) &&
              data.keys().hasOnly(allowedFields) &&
@@ -65,7 +65,7 @@ service cloud.firestore {
              data.isPlanned is bool &&
              data.category in ['공정', '설비', '인건비', '재료비', '기타'] &&
              data.createdAt is string && data.createdAt.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$") &&
-             data.uid is string;
+             (!('uid' in data) || data.uid is string);
     }
 
     // ===============================================================
