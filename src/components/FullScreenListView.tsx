@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { CostItem, CostCategory } from '../types';
-import { ArrowLeft, ArrowUpDown, ArrowUp, ArrowDown, Plus, Search, FileDown, FileUp, Trash2, X, CheckCircle, RotateCcw, Edit2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ArrowUpDown, ArrowUp, ArrowDown, Plus, Search, FileDown, FileUp, Trash2, X, CheckCircle, RotateCcw, Edit2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
@@ -469,6 +469,60 @@ export function FullScreenListView({ type, items, onClose, formatCurrency, onDel
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {filteredItems.length > itemsPerPage && (
+          <div className="max-w-[1600px] mx-auto mt-8 flex justify-center items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="p-2 rounded-xl border border-slate-200 bg-white text-slate-400 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+            
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.ceil(filteredItems.length / itemsPerPage) }, (_, i) => i + 1).map(page => {
+                // Show only a range of pages if there are too many
+                const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+                if (
+                  page === 1 || 
+                  page === totalPages || 
+                  (page >= currentPage - 2 && page <= currentPage + 2)
+                ) {
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={cn(
+                        "w-10 h-10 rounded-xl text-sm font-bold transition-all",
+                        currentPage === page 
+                          ? "bg-blue-600 text-white shadow-lg shadow-blue-100" 
+                          : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+                      )}
+                    >
+                      {page}
+                    </button>
+                  );
+                } else if (
+                  (page === currentPage - 3 && page > 1) || 
+                  (page === currentPage + 3 && page < totalPages)
+                ) {
+                  return <span key={page} className="px-2 text-slate-300">...</span>;
+                }
+                return null;
+              })}
+            </div>
+
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(Math.ceil(filteredItems.length / itemsPerPage), prev + 1))}
+              disabled={currentPage === Math.ceil(filteredItems.length / itemsPerPage)}
+              className="p-2 rounded-xl border border-slate-200 bg-white text-slate-400 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            >
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </main>
     </div>
   );
