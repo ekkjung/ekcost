@@ -168,6 +168,23 @@ function AppContent() {
     isPlanned: true,
   });
 
+  const [isGoogleAuthenticated, setIsGoogleAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      const origin = event.origin;
+      if (!origin.endsWith('.run.app') && !origin.includes('localhost')) {
+        return;
+      }
+      if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
+        setIsGoogleAuthenticated(true);
+        toast.success('Google 서비스 인증에 성공했습니다.');
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
@@ -213,9 +230,19 @@ function AppContent() {
 
   const handleLogin = async () => {
     try {
+      // Ensure we are not calling this multiple times
       await signInWithPopup(auth, googleProvider);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login failed", error);
+      if (error.code === 'auth/popup-blocked') {
+        toast.error("팝업이 차단되었습니다. 브라우저 설정에서 팝업을 허용해주세요.");
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        // User closed the popup, no need for error message
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        // User closed the popup
+      } else {
+        toast.error(`로그인 실패: ${error.message}`);
+      }
     }
   };
 
@@ -868,6 +895,8 @@ function AppContent() {
           onDeleteItem={deleteItem}
           onEditItem={handleEdit}
           onAddNew={() => handleAddNew(fullScreenView === 'plan')}
+          isGoogleAuthenticated={isGoogleAuthenticated}
+          setIsGoogleAuthenticated={setIsGoogleAuthenticated}
           onCompleteUse={async (item) => {
             if (!user) return;
             const newDocRef = doc(collection(db, 'costs'));
@@ -1138,9 +1167,11 @@ interface FullScreenListViewProps {
   onAddNew: () => void;
   onCompleteUse: (item: CostItem) => Promise<void>;
   onRestorePlan: (item: CostItem) => Promise<void>;
+  isGoogleAuthenticated: boolean;
+  setIsGoogleAuthenticated: (val: boolean) => void;
 }
 
-function FullScreenListView({ type, items, onClose, user, isAdmin, formatCurrency, onDeleteItem, onEditItem, onAddNew, onCompleteUse, onRestorePlan }: FullScreenListViewProps) {
+function FullScreenListView({ type, items, onClose, user, isAdmin, formatCurrency, onDeleteItem, onEditItem, onAddNew, onCompleteUse, onRestorePlan, isGoogleAuthenticated, setIsGoogleAuthenticated }: FullScreenListViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
   const [sortConfig, setSortConfig] = useState<{ key: keyof CostItem, direction: 'asc' | 'desc' } | null>({ key: 'year', direction: 'desc' });
@@ -1227,7 +1258,6 @@ function FullScreenListView({ type, items, onClose, user, isAdmin, formatCurrenc
   };
 
   const [isSyncing, setIsSyncing] = useState(false);
-  const [isGoogleAuthenticated, setIsGoogleAuthenticated] = useState(false);
 
   const handleGoogleAuth = async () => {
     try {
@@ -1251,21 +1281,7 @@ function FullScreenListView({ type, items, onClose, user, isAdmin, formatCurrenc
   };
 
   useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      const origin = event.origin;
-      if (!origin.endsWith('.run.app') && !origin.includes('localhost')) {
-        return;
-      }
-      if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
-        setIsGoogleAuthenticated(true);
-        // Automatically trigger sync after successful auth if we were trying to sync
-        if (isSyncing) {
-          handleSyncWithSheets();
-        }
-      }
-    };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
+    // Message listener moved to parent AppContent
   }, [isSyncing]);
 
   const handleSyncWithSheets = async () => {
@@ -1280,6 +1296,7 @@ function FullScreenListView({ type, items, onClose, user, isAdmin, formatCurrenc
       if (!response.ok) throw new Error('Failed to sync with sheets');
       
       const { items: sheetItems } = await response.json();
+      setIsGoogleAuthenticated(true);
       
       // Basic deduplication logic: check if an item with same key fields exists in Firestore
       // Key fields: year, month, day, itemName, quantity, unitPrice
