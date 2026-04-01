@@ -267,9 +267,21 @@ function AppContent() {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen relative overflow-hidden bg-slate-50">
+      {/* Background Image & Pattern */}
+      <div 
+        className="fixed inset-0 z-0 pointer-events-none opacity-30"
+        style={{
+          backgroundImage: 'url("https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=1920&q=80")',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          filter: 'blur(10px) saturate(1.2)',
+        }}
+      />
+      <div className="fixed inset-0 z-0 pointer-events-none bg-abstract-pattern opacity-40" />
+      
       <Sidebar activePage={activePage} setActivePage={setActivePage} />
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto relative z-10 bg-white/30 backdrop-blur-md">
         {renderPage()}
       </div>
 

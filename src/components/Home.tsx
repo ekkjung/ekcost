@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList } from 'recharts';
 import { CostItem } from '../types';
 import { TrendingUp, TrendingDown, Wallet, Calendar } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -56,8 +56,8 @@ export const Home: React.FC<HomeProps> = ({ items, formatCurrency }) => {
   }, [items, year]);
 
   return (
-    <div className="p-8 space-y-8">
-      <div className="flex justify-between items-center bg-white p-6 rounded-[32px] shadow-sm border border-slate-100">
+    <div className="p-8 space-y-8 relative z-10">
+      <div className="flex justify-between items-center bg-white/60 backdrop-blur-md p-6 rounded-[32px] shadow-sm border border-white/50">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
             <Calendar className="w-5 h-5" />
@@ -88,7 +88,7 @@ export const Home: React.FC<HomeProps> = ({ items, formatCurrency }) => {
       </div>
 
       <div className="grid grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
+        <div className="bg-white/60 backdrop-blur-md p-6 rounded-3xl border border-white/50 shadow-sm flex items-center gap-4">
           <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
             <TrendingUp className="w-6 h-6" />
           </div>
@@ -97,7 +97,7 @@ export const Home: React.FC<HomeProps> = ({ items, formatCurrency }) => {
             <p className="text-2xl font-bold text-slate-900">{formatCurrency(stats.planned)}</p>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
+        <div className="bg-white/60 backdrop-blur-md p-6 rounded-3xl border border-white/50 shadow-sm flex items-center gap-4">
           <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
             <TrendingDown className="w-6 h-6" />
           </div>
@@ -106,7 +106,7 @@ export const Home: React.FC<HomeProps> = ({ items, formatCurrency }) => {
             <p className="text-2xl font-bold text-slate-900">{formatCurrency(stats.actual)}</p>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
+        <div className="bg-white/60 backdrop-blur-md p-6 rounded-3xl border border-white/50 shadow-sm flex items-center gap-4">
           <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center">
             <Wallet className="w-6 h-6" />
           </div>
@@ -130,7 +130,7 @@ export const Home: React.FC<HomeProps> = ({ items, formatCurrency }) => {
         </div>
       </div>
 
-      <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+      <div className="bg-white/60 backdrop-blur-md p-8 rounded-3xl border border-white/50 shadow-sm">
         <h3 className="text-lg font-bold mb-6">
           {year === 0 ? '년간' : `${year}년`} 예산 대비 사용량
         </h3>
@@ -145,7 +145,14 @@ export const Home: React.FC<HomeProps> = ({ items, formatCurrency }) => {
                 formatter={(value: number) => formatCurrency(value)}
               />
               <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ paddingBottom: '20px' }} />
-              <Bar dataKey="계획" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="계획" fill="#3B82F6" radius={[4, 4, 0, 0]}>
+                <LabelList 
+                  dataKey="계획" 
+                  position="top" 
+                  formatter={(value: number) => value > 0 ? `${(value / 10000).toLocaleString()}만` : ''}
+                  style={{ fontSize: '10px', fontWeight: '700', fill: '#3B82F6' }}
+                />
+              </Bar>
               <Bar dataKey="실제" fill="#94A3B8" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>

@@ -12,12 +12,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) =
     { id: 'home', label: '홈 페이지', icon: Home },
     { id: 'plan', label: '계획 리스트', icon: TrendingUp },
     { id: 'usage', label: '사용 리스트', icon: TrendingDown },
-    { id: 'mail', label: 'EK메일', icon: Mail, external: 'https://ekk.daouoffice.com/login' },
     { id: 'dashboard', label: '데시보드', icon: LayoutDashboard },
+    { id: 'mail', label: 'EK메일', icon: Mail, external: 'https://ekk.daouoffice.com/login' },
   ];
 
   return (
-    <div className="w-52 bg-white border-r border-slate-200 h-screen flex flex-col">
+    <div className="w-52 bg-white/60 backdrop-blur-xl border-r border-slate-200/50 h-screen flex flex-col relative z-20">
       <div className="p-6 font-bold text-xl text-blue-600">EK 생산기술팀</div>
       <nav className="flex-1 px-4 space-y-2">
         {menuItems.map((item) => (
@@ -42,6 +42,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) =
           </button>
         ))}
       </nav>
+      <div className="p-6 border-t border-slate-100">
+        <p className="text-[10px] font-bold text-slate-400 tracking-widest text-center">MADE BY EK JYH</p>
+      </div>
     </div>
   );
 };

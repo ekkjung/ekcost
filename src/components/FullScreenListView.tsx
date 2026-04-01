@@ -214,8 +214,8 @@ export function FullScreenListView({ type, items, onClose, formatCurrency, onDel
   };
 
   return (
-    <div className="w-full h-full bg-white flex flex-col">
-      <header className="border-b border-slate-200 p-6 flex justify-between items-center bg-white sticky top-0 z-10">
+    <div className="w-full h-full bg-transparent flex flex-col relative z-10">
+      <header className="border-b border-slate-200/50 p-6 flex justify-between items-center bg-white/70 backdrop-blur-md sticky top-0 z-10">
         <div className="flex items-center gap-4">
           <button 
             onClick={onClose}
@@ -286,7 +286,7 @@ export function FullScreenListView({ type, items, onClose, formatCurrency, onDel
 
       <main className="flex-1 overflow-auto p-8">
         <div className="max-w-[1600px] mx-auto mb-8">
-          <div className="flex flex-wrap gap-2 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+          <div className="flex flex-wrap gap-2 p-4 bg-white/50 backdrop-blur-sm rounded-2xl border border-white/50">
             <button
               onClick={() => setSelectedMonth(null)}
               className={cn(
@@ -315,11 +315,11 @@ export function FullScreenListView({ type, items, onClose, formatCurrency, onDel
           </div>
         </div>
 
-        <div className="max-w-[1600px] mx-auto bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="max-w-[1600px] mx-auto bg-white/70 backdrop-blur-md rounded-3xl border border-white/50 shadow-sm overflow-hidden">
           <table className="w-full text-left border-collapse">
-            <thead className="sticky top-0 z-10 bg-slate-50 shadow-sm">
+            <thead className="sticky top-0 z-10 bg-slate-50/50 backdrop-blur-sm shadow-sm">
               <tr>
-                <th className="p-6 w-12">
+                <th className="py-1.5 px-3 w-12">
                   <input 
                     type="checkbox" 
                     className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
@@ -346,7 +346,7 @@ export function FullScreenListView({ type, items, onClose, formatCurrency, onDel
                   <th 
                     key={col.key}
                     className={cn(
-                      "p-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-100 transition-colors",
+                      "py-1.5 px-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider cursor-pointer hover:bg-slate-100 transition-colors",
                       col.align === 'right' && "text-right"
                     )}
                     onClick={() => requestSort(col.key as keyof CostItem)}
@@ -361,7 +361,7 @@ export function FullScreenListView({ type, items, onClose, formatCurrency, onDel
                     </div>
                   </th>
                 ))}
-                <th className="p-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-center">관리</th>
+                <th className="py-1.5 px-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-center">관리</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -377,7 +377,7 @@ export function FullScreenListView({ type, items, onClose, formatCurrency, onDel
                     "hover:bg-slate-50/50 transition-colors group",
                     selectedIds.has(item.id) && "bg-blue-50/30"
                   )}>
-                    <td className="p-3">
+                    <td className="py-1.5 px-3">
                       <input 
                         type="checkbox" 
                         className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
@@ -385,19 +385,19 @@ export function FullScreenListView({ type, items, onClose, formatCurrency, onDel
                         onChange={() => toggleSelect(item.id)}
                       />
                     </td>
-                    <td className="p-3 text-xs font-bold text-slate-500 font-mono">
+                    <td className="py-1.5 px-3 text-xs font-bold text-slate-500 font-mono">
                       {type === 'plan' 
                         ? `${item.year}.${String(item.month).padStart(2, '0')}`
                         : `${item.year}.${String(item.month).padStart(2, '0')}.${String(item.day).padStart(2, '0')}`
                       }
                     </td>
-                    <td className="p-3">
+                    <td className="py-1.5 px-3">
                       <span className="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-600 rounded font-bold uppercase">{item.category}</span>
                     </td>
-                    <td className="p-3 text-xs font-semibold text-slate-700">{item.processName || '-'}</td>
-                    <td className="p-3 text-xs text-slate-500">{item.equipmentName || '-'}</td>
+                    <td className="py-1.5 px-3 text-xs font-semibold text-slate-700">{item.processName || '-'}</td>
+                    <td className="py-1.5 px-3 text-xs text-slate-500">{item.equipmentName || '-'}</td>
                     {type === 'usage' && (
-                      <td className="p-3">
+                      <td className="py-1.5 px-3">
                         <span className={cn(
                           "text-[10px] px-2 py-0.5 rounded font-bold uppercase",
                           item.isIncludedInPlan ? "bg-blue-50 text-blue-600" : "bg-slate-100 text-slate-400"
@@ -406,20 +406,20 @@ export function FullScreenListView({ type, items, onClose, formatCurrency, onDel
                         </span>
                       </td>
                     )}
-                    <td className="p-3">
+                    <td className="py-1.5 px-3">
                       <div className="text-sm font-bold text-slate-900 item-name">{item.itemName}</div>
                     </td>
                     {type !== 'plan' && (
                       <>
-                        <td className="p-3 text-xs text-slate-400 font-mono">{item.itemNumber || '-'}</td>
-                        <td className="p-3 text-xs text-slate-500">{item.supplier || '-'}</td>
-                        <td className="p-3 text-xs text-slate-500">{item.manufacturer || '-'}</td>
+                        <td className="py-1.5 px-3 text-xs text-slate-400 font-mono">{item.itemNumber || '-'}</td>
+                        <td className="py-1.5 px-3 text-xs text-slate-500">{item.supplier || '-'}</td>
+                        <td className="py-1.5 px-3 text-xs text-slate-500">{item.manufacturer || '-'}</td>
                       </>
                     )}
-                    <td className="p-3 text-right text-xs font-mono text-slate-500">{item.quantity}</td>
-                    <td className="p-3 text-right text-xs font-mono">{formatCurrency(item.unitPrice)}</td>
-                    <td className="p-3 text-right text-xs font-mono font-bold text-blue-600">{formatCurrency(item.totalAmount)}</td>
-                    <td className="p-3 text-center">
+                    <td className="py-1.5 px-3 text-right text-xs font-mono text-slate-500">{item.quantity}</td>
+                    <td className="py-1.5 px-3 text-right text-sm font-mono">{formatCurrency(item.unitPrice)}</td>
+                    <td className="py-1.5 px-3 text-right text-sm font-mono font-bold text-blue-600">{formatCurrency(item.totalAmount)}</td>
+                    <td className="py-1.5 px-3 text-center">
                       <div className="flex items-center justify-center gap-1">
                         {type === 'plan' && (
                           <button 
