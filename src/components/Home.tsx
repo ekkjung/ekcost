@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList } from 'recharts';
 import { CostItem } from '../types';
-import { TrendingUp, TrendingDown, Wallet, Calendar, Activity, Sparkles, Bot } from 'lucide-react';
+import { TrendingUp, TrendingDown, Wallet, Calendar, Activity, Sparkles, Bot, Languages } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 interface HomeProps {
@@ -87,6 +87,30 @@ export const Home: React.FC<HomeProps> = ({ items, formatCurrency }) => {
             <div className="text-left">
               <div className="text-[8px] font-bold text-slate-500 uppercase tracking-wider leading-none">Ask AI</div>
               <div className="font-black text-xs">Gemini</div>
+            </div>
+          </a>
+          <a 
+            href="https://translate.google.com" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="flex items-center gap-2.5 px-4 py-2.5 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[18px] hover:bg-white/10 hover:border-white/20 transition-all group shadow-xl"
+          >
+            <Languages className="w-5 h-5 text-cyan-400 group-hover:scale-110 transition-transform" />
+            <div className="text-left">
+              <div className="text-[8px] font-bold text-slate-500 uppercase tracking-wider leading-none">Translate</div>
+              <div className="font-black text-xs">Google</div>
+            </div>
+          </a>
+          <a 
+            href="https://papago.naver.com" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="flex items-center gap-2.5 px-4 py-2.5 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[18px] hover:bg-white/10 hover:border-white/20 transition-all group shadow-xl"
+          >
+            <Languages className="w-5 h-5 text-emerald-500 group-hover:scale-110 transition-transform" />
+            <div className="text-left">
+              <div className="text-[8px] font-bold text-slate-500 uppercase tracking-wider leading-none">Translate</div>
+              <div className="font-black text-xs">Papago</div>
             </div>
           </a>
           <a 
