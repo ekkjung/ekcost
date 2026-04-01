@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { CostItem, CostCategory } from '../types';
-import { ArrowLeft, ArrowRight, ArrowUpDown, ArrowUp, ArrowDown, Plus, Search, FileDown, FileUp, Trash2, X, CheckCircle, RotateCcw, Edit2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ArrowUpDown, ArrowUp, ArrowDown, Plus, Search, FileDown, FileUp, Trash2, X, CheckCircle, RotateCcw, Edit2, MessageSquare } from 'lucide-react';
 import { cn } from '../lib/utils';
 import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
@@ -94,7 +94,8 @@ export function FullScreenListView({ type, items, onClose, formatCurrency, onDel
       '제조사': item.manufacturer || '',
       '수량': item.quantity,
       '단가': item.unitPrice,
-      '합계': item.totalAmount
+      '합계': item.totalAmount,
+      '비고': item.remarks || ''
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
@@ -156,6 +157,8 @@ export function FullScreenListView({ type, items, onClose, formatCurrency, onDel
               quantity: Number(row['수량']) || 0,
               unitPrice: Number(row['단가']) || 0,
               totalAmount: (Number(row['수량']) || 0) * (Number(row['단가']) || 0),
+              remarks: row['비고'] || '',
+              isCompleted: false,
               isIncludedInPlan: isIncludedInPlan,
               createdAt: new Date().toISOString(),
               uid: auth.currentUser?.uid || 'anonymous',
@@ -330,6 +333,7 @@ export function FullScreenListView({ type, items, onClose, formatCurrency, onDel
                 {[
                   { label: type === 'plan' ? '계획 월' : '날짜', key: 'year' },
                   { label: '계정항목', key: 'category' },
+                  { label: '공정모델', key: 'processModel' },
                   { label: '공정명', key: 'processName' },
                   { label: '설비명', key: 'equipmentName' },
                   ...(type === 'usage' ? [{ label: '계획', key: 'isIncludedInPlan' }] : []),
@@ -361,6 +365,7 @@ export function FullScreenListView({ type, items, onClose, formatCurrency, onDel
                     </div>
                   </th>
                 ))}
+                <th className="py-1.5 px-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-center">비고</th>
                 <th className="py-1.5 px-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-center">관리</th>
               </tr>
             </thead>
@@ -394,6 +399,7 @@ export function FullScreenListView({ type, items, onClose, formatCurrency, onDel
                     <td className="py-1.5 px-3">
                       <span className="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-600 rounded font-bold uppercase">{item.category}</span>
                     </td>
+                    <td className="py-1.5 px-3 text-xs font-semibold text-slate-700">{item.processModel || '-'}</td>
                     <td className="py-1.5 px-3 text-xs font-semibold text-slate-700">{item.processName || '-'}</td>
                     <td className="py-1.5 px-3 text-xs text-slate-500">{item.equipmentName || '-'}</td>
                     {type === 'usage' && (
@@ -419,6 +425,19 @@ export function FullScreenListView({ type, items, onClose, formatCurrency, onDel
                     <td className="py-1.5 px-3 text-right text-xs font-mono text-slate-500">{item.quantity}</td>
                     <td className="py-1.5 px-3 text-right text-sm font-mono">{formatCurrency(item.unitPrice)}</td>
                     <td className="py-1.5 px-3 text-right text-sm font-mono font-bold text-blue-600">{formatCurrency(item.totalAmount)}</td>
+                    <td className="py-1.5 px-3 text-center relative">
+                      {item.remarks && (
+                        <div className="group relative flex justify-center">
+                          <MessageSquare className="w-4 h-4 text-slate-400 cursor-help hover:text-blue-500 transition-colors" />
+                          <div className="absolute bottom-full mb-2 hidden group-hover:block z-50">
+                            <div className="bg-slate-800 text-white text-[10px] py-1.5 px-3 rounded-lg shadow-xl whitespace-nowrap max-w-xs break-words">
+                              {item.remarks}
+                              <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-800"></div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </td>
                     <td className="py-1.5 px-3 text-center">
                       <div className="flex items-center justify-center gap-1">
                         {type === 'plan' && (
@@ -427,10 +446,15 @@ export function FullScreenListView({ type, items, onClose, formatCurrency, onDel
                               e.stopPropagation();
                               onCompleteUse(item);
                             }}
-                            className="p-2 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-all"
-                            title="사용완료 (사용 리스트로 복사)"
+                            className={cn(
+                              "p-2 rounded-lg transition-all",
+                              item.isCompleted 
+                                ? "text-blue-600 bg-blue-50" 
+                                : "text-slate-400 hover:text-emerald-500 hover:bg-emerald-50"
+                            )}
+                            title={item.isCompleted ? "사용완료됨" : "사용완료 (사용 리스트로 복사)"}
                           >
-                            <CheckCircle className="w-4 h-4" />
+                            <CheckCircle className={cn("w-4 h-4", item.isCompleted && "stroke-[3px]")} />
                           </button>
                         )}
                         {type === 'usage' && (

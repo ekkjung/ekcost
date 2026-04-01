@@ -148,10 +148,27 @@ function AppContent() {
     quantity: 0,
     unitPrice: 0,
     totalAmount: 0,
+    remarks: '',
+    isCompleted: false,
     isIncludedInPlan: true,
     createdAt: new Date().toISOString(),
     uid: auth.currentUser?.uid || 'anonymous',
   });
+
+  const processModels = useMemo(() => {
+    const models = new Set(items.map(i => i.processModel?.trim()).filter(Boolean));
+    // Include defaults if not present
+    ['SIM', 'SCM', 'IPM'].forEach(m => models.add(m));
+    return Array.from(models).sort();
+  }, [items]);
+
+  const processNames = useMemo(() => {
+    const names = new Set(items.map(i => i.processName?.trim()).filter(Boolean));
+    return Array.from(names).sort();
+  }, [items]);
+
+  const [isManualModel, setIsManualModel] = useState(false);
+  const [isManualProcess, setIsManualProcess] = useState(false);
 
   const formatCurrency = (value: number) => new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW' }).format(value);
 
@@ -163,6 +180,8 @@ function AppContent() {
     setNewItem(item);
     setEditingId(item.id);
     setIsAdding(true);
+    setIsManualModel(false);
+    setIsManualProcess(false);
   };
 
   const handleAddNew = (isPlanned: boolean) => {
@@ -177,12 +196,16 @@ function AppContent() {
       quantity: 0,
       unitPrice: 0,
       totalAmount: 0,
+      remarks: '',
+      isCompleted: false,
       isIncludedInPlan: true,
       createdAt: new Date().toISOString(),
       uid: auth.currentUser?.uid || 'public',
     });
     setEditingId(null);
     setIsAdding(true);
+    setIsManualModel(false);
+    setIsManualProcess(false);
   };
 
   const filteredItems = items; 
@@ -224,17 +247,31 @@ function AppContent() {
   }, []);
 
   const onCompleteUse = async (item: CostItem) => {
-    const id = crypto.randomUUID();
-    const docRef = doc(db, 'costs', id);
-    const newItem: CostItem = {
-      ...item,
-      id,
-      isPlanned: false,
-      createdAt: new Date().toISOString(),
-      uid: auth.currentUser?.uid || 'anonymous',
-    };
-    await setDoc(docRef, newItem);
-    toast.success("사용 리스트로 복사되었습니다.");
+    const isCurrentlyCompleted = item.isCompleted === true;
+    
+    if (!isCurrentlyCompleted) {
+      // Mark as completed and copy to usage list
+      const id = crypto.randomUUID();
+      const docRef = doc(db, 'costs', id);
+      const newItem: CostItem = {
+        ...item,
+        id,
+        isPlanned: false,
+        remarks: item.remarks || '',
+        isCompleted: true,
+        createdAt: new Date().toISOString(),
+        uid: auth.currentUser?.uid || 'anonymous',
+      };
+      await setDoc(docRef, newItem);
+      
+      // Update original plan item
+      await setDoc(doc(db, 'costs', item.id), { ...item, isCompleted: true }, { merge: true });
+      toast.success("사용 리스트로 복사되었습니다.");
+    } else {
+      // Toggle back to incomplete
+      await setDoc(doc(db, 'costs', item.id), { ...item, isCompleted: false }, { merge: true });
+      toast.success("사용완료 상태가 취소되었습니다.");
+    }
   };
 
   const onRestorePlan = async (item: CostItem) => {
@@ -244,6 +281,8 @@ function AppContent() {
       ...item,
       id,
       isPlanned: true,
+      remarks: item.remarks || '',
+      isCompleted: false,
       createdAt: new Date().toISOString(),
       uid: auth.currentUser?.uid || 'anonymous',
     };
@@ -376,23 +415,81 @@ function AppContent() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-500 uppercase ml-1">공정 모델</label>
-                  <input 
-                    type="text" 
-                    value={newItem.processModel}
-                    onChange={(e) => setNewItem({ ...newItem, processModel: e.target.value })}
-                    className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
-                    placeholder="예: N7, N5"
-                  />
+                  {!isManualModel ? (
+                    <select 
+                      value={newItem.processModel || ''}
+                      onChange={(e) => {
+                        if (e.target.value === 'manual') {
+                          setIsManualModel(true);
+                          setNewItem({ ...newItem, processModel: '' });
+                        } else {
+                          setNewItem({ ...newItem, processModel: e.target.value });
+                        }
+                      }}
+                      className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
+                    >
+                      <option value="">선택하세요</option>
+                      {processModels.map(m => <option key={m} value={m}>{m}</option>)}
+                      <option value="manual" className="text-blue-600 font-bold">+ 직접 입력</option>
+                    </select>
+                  ) : (
+                    <div className="relative">
+                      <input 
+                        type="text" 
+                        value={newItem.processModel || ''}
+                        onChange={(e) => setNewItem({ ...newItem, processModel: e.target.value })}
+                        className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
+                        placeholder="공정 모델 직접 입력"
+                        autoFocus
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => setIsManualModel(false)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-blue-600 hover:underline"
+                      >
+                        목록에서 선택
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-500 uppercase ml-1">공정명</label>
-                  <input 
-                    type="text" 
-                    value={newItem.processName}
-                    onChange={(e) => setNewItem({ ...newItem, processName: e.target.value })}
-                    className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
-                    placeholder="예: 포토공정"
-                  />
+                  {!isManualProcess ? (
+                    <select 
+                      value={newItem.processName || ''}
+                      onChange={(e) => {
+                        if (e.target.value === 'manual') {
+                          setIsManualProcess(true);
+                          setNewItem({ ...newItem, processName: '' });
+                        } else {
+                          setNewItem({ ...newItem, processName: e.target.value });
+                        }
+                      }}
+                      className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
+                    >
+                      <option value="">선택하세요</option>
+                      {processNames.map(n => <option key={n} value={n}>{n}</option>)}
+                      <option value="manual" className="text-blue-600 font-bold">+ 직접 입력</option>
+                    </select>
+                  ) : (
+                    <div className="relative">
+                      <input 
+                        type="text" 
+                        value={newItem.processName || ''}
+                        onChange={(e) => setNewItem({ ...newItem, processName: e.target.value })}
+                        className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
+                        placeholder="공정명 직접 입력"
+                        autoFocus
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => setIsManualProcess(false)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-blue-600 hover:underline"
+                      >
+                        목록에서 선택
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -485,6 +582,16 @@ function AppContent() {
                     {formatCurrency(newItem.totalAmount || 0)}
                   </div>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 uppercase ml-1">비고</label>
+                <textarea 
+                  value={newItem.remarks}
+                  onChange={(e) => setNewItem({ ...newItem, remarks: e.target.value })}
+                  className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-100 outline-none resize-none h-24"
+                  placeholder="비고 내용을 입력하세요."
+                />
               </div>
 
               <button 

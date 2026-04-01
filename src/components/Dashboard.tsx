@@ -12,6 +12,70 @@ interface DashboardProps {
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#F97316'];
 
+const ProcessCard: React.FC<{ proc: any, formatCurrency: (v: number) => string }> = ({ proc, formatCurrency }) => (
+  <div className={cn(
+    "p-6 rounded-[32px] border shadow-sm flex flex-col hover:shadow-md transition-all duration-300 group backdrop-blur-xl",
+    proc.name === '수선비' ? "bg-slate-900/[0.07] border-slate-200/60" : 
+    proc.name === '소모품비' ? "bg-rose-500/[0.07] border-rose-200/60" : 
+    "bg-white/60 border-white/50"
+  )}>
+    <div className="flex justify-between items-start mb-2">
+      <div className="flex flex-col">
+        <span className="text-[14px] font-black text-slate-800 leading-tight">{proc.processName}</span>
+        <span className="text-[11px] font-bold text-slate-500 leading-tight">{proc.name}</span>
+      </div>
+      <span className={cn(
+        "text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0",
+        proc.actual > proc.planned ? "bg-rose-50 text-rose-600" : "bg-emerald-50 text-emerald-600"
+      )}>
+        {proc.planned > 0 ? `${((proc.actual / proc.planned) * 100).toFixed(0)}%` : '-%'}
+      </span>
+    </div>
+    <div className="h-[160px] relative">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={proc.data}
+            cx="50%"
+            cy="50%"
+            innerRadius={48}
+            outerRadius={68}
+            paddingAngle={5}
+            dataKey="value"
+            stroke="none"
+          >
+            {proc.data.map((entry: any, index: number) => (
+              <Cell key={`cell-${index}`} fill={entry.color} />
+            ))}
+          </Pie>
+          <Tooltip 
+            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '11px' }}
+            formatter={(value: number) => [`${formatCurrency(value)}원`, '']}
+          />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
+    <div className="mt-4 space-y-1.5">
+      <div className="flex justify-between text-[11px]">
+        <span className="text-slate-400 font-medium">계획 예산</span>
+        <span className="text-slate-700 font-bold">{formatCurrency(proc.planned)}원</span>
+      </div>
+      <div className="flex justify-between text-[11px]">
+        <span className="text-slate-400 font-medium">실제 집행</span>
+        <span className={cn("font-bold", proc.actual > proc.planned ? "text-rose-500" : "text-slate-700")}>
+          {formatCurrency(proc.actual)}원
+        </span>
+      </div>
+      <div className="pt-1.5 mt-1.5 border-t border-slate-100 flex justify-between text-[11px]">
+        <span className="text-slate-400 font-medium">잔여/초과</span>
+        <span className={cn("font-bold", proc.actual > proc.planned ? "text-rose-500" : "text-emerald-500")}>
+          {formatCurrency(proc.planned - proc.actual)}원
+        </span>
+      </div>
+    </div>
+  </div>
+);
+
 export const Dashboard: React.FC<DashboardProps> = ({ items }) => {
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
@@ -87,43 +151,88 @@ export const Dashboard: React.FC<DashboardProps> = ({ items }) => {
     }).filter(d => d.계획 > 0 || d.실제 > 0);
   }, [filteredItems]);
 
-  const processComparisonData = useMemo(() => {
-    // Extract unique process names, trimming whitespace and handling empty strings
-    const processes = Array.from(new Set(filteredItems.map(i => {
-      const name = i.processName?.trim();
-      return name && name.length > 0 ? name : '기타/미지정';
-    })));
+  const groupedProcessData = useMemo(() => {
+    const models = ['SIM', 'SCM', 'IPM'];
+    const result: Record<string, Record<string, any[]>> = { 
+      SIM: {}, 
+      SCM: {}, 
+      IPM: {}, 
+      OTHERS: {} 
+    };
+
+    // Let's do a cleaner aggregation
+    const aggregation: any = {};
     
-    return processes.map(proc => {
-      const planned = filteredItems
-        .filter(i => i.isPlanned && (i.processName?.trim() || '기타/미지정') === proc)
-        .reduce((sum, i) => sum + i.totalAmount, 0);
-        
-      const actual = filteredItems
-        .filter(i => !i.isPlanned && (i.processName?.trim() || '기타/미지정') === proc)
-        .reduce((sum, i) => sum + i.totalAmount, 0);
+    filteredItems.forEach(item => {
+      const m = item.processModel?.toUpperCase().trim() || '기타';
+      const p = item.processName?.trim() || '기타/미지정';
+      const c = item.category;
+      const key = `${m}|${p}|${c}`;
+      
+      if (!aggregation[key]) {
+        aggregation[key] = {
+          model: m,
+          process: p,
+          category: c,
+          planned: 0,
+          actual: 0
+        };
+      }
+      
+      if (item.isPlanned) {
+        aggregation[key].planned += item.totalAmount;
+      } else {
+        aggregation[key].actual += item.totalAmount;
+      }
+    });
+
+    Object.values(aggregation).forEach((group: any) => {
+      if (group.planned === 0 && group.actual === 0) return;
+      
+      const modelKey = models.includes(group.model) ? group.model : 'OTHERS';
+      
+      if (!result[modelKey][group.process]) {
+        result[modelKey][group.process] = [];
+      }
       
       let chartData;
-      if (actual <= planned) {
+      const isRepair = group.category === '수선비';
+      const isConsumable = group.category === '소모품비';
+      
+      const baseColor = isRepair ? '#475569' : isConsumable ? '#E11D48' : '#3B82F6';
+      const bgColor = isRepair ? '#E2E8F0' : isConsumable ? '#FFE4E6' : '#F1F5F9';
+
+      if (group.actual <= group.planned) {
         chartData = [
-          { name: '집행금액', value: actual, color: '#3B82F6' },
-          { name: '잔여예산', value: Math.max(0, planned - actual), color: '#F1F5F9' }
+          { name: '집행금액', value: group.actual, color: baseColor },
+          { name: '잔여예산', value: Math.max(0, group.planned - group.actual), color: bgColor }
         ];
       } else {
         chartData = [
-          { name: '계획예산', value: planned, color: '#3B82F6' },
-          { name: '초과금액', value: actual - planned, color: '#EF4444' }
+          { name: '계획예산', value: group.planned, color: baseColor },
+          { name: '초과금액', value: group.actual - group.planned, color: '#EF4444' }
         ];
       }
 
-      return { 
-        name: proc, 
+      result[modelKey][group.process].push({
+        name: group.category,
         data: chartData,
-        planned,
-        actual
-      };
-    }).filter(d => d.planned > 0 || d.actual > 0)
-      .sort((a, b) => b.actual - a.actual);
+        planned: group.planned,
+        actual: group.actual,
+        model: group.model,
+        processName: group.process,
+        category: group.category
+      });
+    });
+
+    // Sort categories within each process by actual amount
+    Object.keys(result).forEach(mKey => {
+      Object.keys(result[mKey]).forEach(pKey => {
+        result[mKey][pKey].sort((a, b) => b.actual - a.actual);
+      });
+    });
+
+    return result;
   }, [filteredItems]);
 
   const formatCurrency = (value: number) => new Intl.NumberFormat('ko-KR').format(value);
@@ -239,77 +348,77 @@ export const Dashboard: React.FC<DashboardProps> = ({ items }) => {
         </div>
       </div>
 
-      <div className="space-y-6">
-        <div className="flex items-center gap-2 px-2">
-          <h3 className="text-lg font-bold text-slate-800">공정별 예산 대비 사용 현황</h3>
-          <span className="text-xs text-slate-400 font-medium">(공정별 개별 분석)</span>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {processComparisonData.map((proc) => (
-            <div key={proc.name} className="bg-white/60 backdrop-blur-md p-6 rounded-[32px] border border-white/50 shadow-sm flex flex-col">
-              <div className="flex justify-between items-start mb-4">
-                <h4 className="text-sm font-bold text-slate-800 truncate max-w-[150px]" title={proc.name}>{proc.name}</h4>
-                <span className={cn(
-                  "text-[10px] px-2 py-0.5 rounded-full font-bold",
-                  proc.actual > proc.planned ? "bg-rose-50 text-rose-600" : "bg-emerald-50 text-emerald-600"
-                )}>
-                  {proc.planned > 0 ? `${((proc.actual / proc.planned) * 100).toFixed(0)}%` : '-%'}
-                </span>
-              </div>
-              <div className="h-[160px] relative">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={proc.data}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={45}
-                      outerRadius={65}
-                      paddingAngle={5}
-                      dataKey="value"
-                      stroke="none"
-                    >
-                      {proc.data.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '11px' }}
-                      formatter={(value: number) => [`${formatCurrency(value)}원`, '']}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase">사용률</span>
-                  <span className={cn(
-                    "text-sm font-bold",
-                    proc.actual > proc.planned ? "text-rose-500" : "text-slate-700"
-                  )}>
-                    {proc.planned > 0 ? `${((proc.actual / proc.planned) * 100).toFixed(0)}%` : '0%'}
-                  </span>
-                </div>
-              </div>
-              <div className="mt-4 space-y-1.5">
-                <div className="flex justify-between text-[11px]">
-                  <span className="text-slate-400 font-medium">계획 예산</span>
-                  <span className="text-slate-700 font-bold">{formatCurrency(proc.planned)}원</span>
-                </div>
-                <div className="flex justify-between text-[11px]">
-                  <span className="text-slate-400 font-medium">실제 집행</span>
-                  <span className={cn("font-bold", proc.actual > proc.planned ? "text-rose-500" : "text-slate-700")}>
-                    {formatCurrency(proc.actual)}원
-                  </span>
-                </div>
-                <div className="pt-1.5 mt-1.5 border-t border-slate-100 flex justify-between text-[11px]">
-                  <span className="text-slate-400 font-medium">잔여/초과</span>
-                  <span className={cn("font-bold", proc.actual > proc.planned ? "text-rose-500" : "text-emerald-500")}>
-                    {formatCurrency(proc.planned - proc.actual)}원
-                  </span>
-                </div>
-              </div>
+      <div className="space-y-16">
+        {/* SIM Group */}
+        {Object.keys(groupedProcessData.SIM).length > 0 && (
+          <div className="space-y-10">
+            <div className="flex items-center gap-3 px-2 border-l-4 border-blue-600 pl-4">
+              <h3 className="text-xl font-black text-blue-600">SIM 공정모델 현황</h3>
+              <span className="text-xs text-slate-400 font-bold uppercase tracking-widest">Process Model: SIM</span>
             </div>
-          ))}
-        </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+              {(Object.entries(groupedProcessData.SIM) as [string, any[]][]).flatMap(([procName, categories]) => 
+                categories.map((catData, idx) => (
+                  <ProcessCard key={`${procName}-${idx}`} proc={catData} formatCurrency={formatCurrency} />
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* SCM Group */}
+        {Object.keys(groupedProcessData.SCM).length > 0 && (
+          <div className="space-y-10">
+            <div className="flex items-center gap-3 px-2 border-l-4 border-emerald-600 pl-4">
+              <h3 className="text-xl font-black text-emerald-600">SCM 공정모델 현황</h3>
+              <span className="text-xs text-slate-400 font-bold uppercase tracking-widest">Process Model: SCM</span>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+              {(Object.entries(groupedProcessData.SCM) as [string, any[]][]).flatMap(([procName, categories]) => 
+                categories.map((catData, idx) => (
+                  <ProcessCard key={`${procName}-${idx}`} proc={catData} formatCurrency={formatCurrency} />
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* IPM Group */}
+        {Object.keys(groupedProcessData.IPM).length > 0 && (
+          <div className="space-y-10">
+            <div className="flex items-center gap-3 px-2 border-l-4 border-amber-600 pl-4">
+              <h3 className="text-xl font-black text-amber-600">IPM 공정모델 현황</h3>
+              <span className="text-xs text-slate-400 font-bold uppercase tracking-widest">Process Model: IPM</span>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+              {(Object.entries(groupedProcessData.IPM) as [string, any[]][]).flatMap(([procName, categories]) => 
+                categories.map((catData, idx) => (
+                  <ProcessCard key={`${procName}-${idx}`} proc={catData} formatCurrency={formatCurrency} />
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Others Group */}
+        {Object.keys(groupedProcessData.OTHERS).length > 0 && (
+          <div className="space-y-10">
+            <div className="flex items-center gap-3 px-2 border-l-4 border-slate-600 pl-4">
+              <h3 className="text-xl font-black text-slate-600">기타 공정모델 현황</h3>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+              {(Object.entries(groupedProcessData.OTHERS) as [string, any[]][]).flatMap(([procName, categories]) => 
+                categories.map((catData, idx) => (
+                  <ProcessCard key={`${procName}-${idx}`} proc={catData} formatCurrency={formatCurrency} />
+                ))
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="bg-white/60 backdrop-blur-md p-8 rounded-[32px] border border-white/50 shadow-sm">

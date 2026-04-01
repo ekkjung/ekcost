@@ -18,6 +18,8 @@ export interface CostItem {
   quantity: number;
   unitPrice: number;
   totalAmount: number;
+  remarks?: string;
+  isCompleted?: boolean;
   createdAt: string;
   uid?: string; // Keep for compatibility if needed, though we don't use it for auth now
 }
