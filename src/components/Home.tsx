@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList } from 'recharts';
 import { CostItem } from '../types';
-import { TrendingUp, TrendingDown, Wallet, Calendar } from 'lucide-react';
+import { TrendingUp, TrendingDown, Wallet, Calendar, Activity, Sparkles, Bot } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 interface HomeProps {
@@ -54,6 +54,56 @@ export const Home: React.FC<HomeProps> = ({ items, formatCurrency }) => {
 
   return (
     <div className="p-8 space-y-8 relative z-10">
+      {/* Revolutionary Title Section - Compact Version */}
+      <div className="flex justify-between items-center bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#0F172A] py-5 px-10 rounded-[32px] shadow-2xl shadow-blue-900/20 text-white overflow-hidden relative border border-white/5">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 rounded-full -mr-32 -mt-32 blur-[80px]"></div>
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-600/10 rounded-full -ml-24 -mb-24 blur-[60px]"></div>
+        
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-1.5">
+            <div className="px-2 py-0.5 bg-blue-500/20 backdrop-blur-md border border-blue-500/30 rounded-full text-[8px] font-black uppercase tracking-[0.2em] text-blue-400">
+              Next-Gen Intelligence
+            </div>
+          </div>
+          <h1 className="text-2xl font-black tracking-tight mb-1 flex items-center gap-3">
+            <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/20">
+              <Activity className="w-5 h-5 text-white" />
+            </div>
+            EK Smart Budget Optimizer
+          </h1>
+          <p className="text-slate-400 font-medium text-sm max-w-lg leading-snug">
+            데이터 기반 정밀 분석과 지능형 예측으로 <span className="text-white font-bold">예산 효율을 극대화</span>하는 혁신 솔루션입니다.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3 relative z-10">
+          <a 
+            href="https://gemini.google.com" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="flex items-center gap-2.5 px-4 py-2.5 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[18px] hover:bg-white/10 hover:border-white/20 transition-all group shadow-xl"
+          >
+            <Sparkles className="w-5 h-5 text-blue-400 group-hover:scale-110 transition-transform" />
+            <div className="text-left">
+              <div className="text-[8px] font-bold text-slate-500 uppercase tracking-wider leading-none">Ask AI</div>
+              <div className="font-black text-xs">Gemini</div>
+            </div>
+          </a>
+          <a 
+            href="https://chatgpt.com" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="flex items-center gap-2.5 px-4 py-2.5 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[18px] hover:bg-white/10 hover:border-white/20 transition-all group shadow-xl"
+          >
+            <Bot className="w-5 h-5 text-emerald-400 group-hover:scale-110 transition-transform" />
+            <div className="text-left">
+              <div className="text-[8px] font-bold text-slate-500 uppercase tracking-wider leading-none">Chat with</div>
+              <div className="font-black text-xs">ChatGPT</div>
+            </div>
+          </a>
+        </div>
+      </div>
+
       <div className="flex justify-between items-center bg-white/60 backdrop-blur-md p-6 rounded-[32px] shadow-sm border border-white/50">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">

@@ -1,6 +1,7 @@
 import React from 'react';
-import { Home, List, TrendingUp, TrendingDown, Mail, LayoutDashboard, X } from 'lucide-react';
+import { Home, List, TrendingUp, TrendingDown, Mail, LayoutDashboard, X, Layers, Folder, Activity } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { toast } from 'sonner';
 
 interface SidebarProps {
   activePage: string;
@@ -14,6 +15,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) =
     { id: 'usage', label: '사용 리스트', icon: TrendingDown },
     { id: 'dashboard', label: '데시보드', icon: LayoutDashboard },
     { id: 'mail', label: 'EK메일', icon: Mail, external: 'https://ekk.daouoffice.com/login' },
+    { id: 'erp', label: '영림원', icon: Layers, external: 'https://mfg.systemevererp.com/' },
+    { id: 'mes', label: 'EK MES', icon: Activity, external: 'http://192.168.56.206/MES/login.do' },
+    { id: 'nas', label: 'EK파일서버', icon: Folder, external: '\\\\192.168.63.253' },
   ];
 
   return (
@@ -25,7 +29,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage }) =
             key={item.id}
             onClick={() => {
               if (item.external) {
-                window.open(item.external, '_blank');
+                if (item.id === 'nas') {
+                  // Browser security blocks file:// or UNC paths from web pages.
+                  // We can try to copy the path to clipboard as a fallback.
+                  try {
+                    navigator.clipboard.writeText(item.external);
+                    toast.info('파일서버 주소가 복사되었습니다. 파일 탐색기 주소창에 붙여넣으세요.', {
+                      description: item.external
+                    });
+                    // Still try to open, though it might be blocked
+                    window.open(`file:${item.external}`, '_blank');
+                  } catch (err) {
+                    window.open(`file:${item.external}`, '_blank');
+                  }
+                } else {
+                  window.open(item.external, '_blank');
+                }
               } else {
                 setActivePage(item.id);
               }
