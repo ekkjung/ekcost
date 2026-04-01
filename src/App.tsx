@@ -362,13 +362,7 @@ function AppContent() {
                     value={newItem.month}
                     onChange={(e) => {
                       const m = Number(e.target.value);
-                      let y = newItem.year || new Date().getFullYear();
-                      if (newItem.isPlanned && [1, 2, 3].includes(m)) {
-                        y = new Date().getFullYear() + 1;
-                      } else if (newItem.isPlanned) {
-                        y = new Date().getFullYear();
-                      }
-                      setNewItem({ ...newItem, month: m, year: y });
+                      setNewItem({ ...newItem, month: m });
                     }}
                     className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
                   >

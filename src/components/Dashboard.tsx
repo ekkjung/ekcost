@@ -259,7 +259,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ items }) => {
             className="bg-slate-50/50 border-none rounded-2xl px-4 py-2.5 text-sm font-bold focus:ring-2 focus:ring-blue-100 outline-none cursor-pointer"
           >
             <option value={0}>전체 월</option>
-            {Array.from({ length: 12 }, (_, i) => i + 1).map(m => <option key={m} value={m}>{m}월</option>)}
+            {Array.from({ length: 12 }, (_, i) => i + 1).map(m => {
+              const displayYear = (year !== 0 && [1, 2, 3].includes(m)) ? year + 1 : year;
+              return <option key={m} value={m}>{year !== 0 ? `${displayYear}년 ` : ''}{m}월</option>;
+            })}
           </select>
         </div>
       </div>
@@ -426,7 +429,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ items }) => {
           <div>
             <h3 className="text-lg font-bold text-slate-800">초과 사유 및 분석 코멘트</h3>
             <p className="text-sm text-slate-400 mt-1">
-              {year === 0 ? '전체 년도' : `${year}년`} {month === 0 ? '전체 월' : `${month}월`} 분석 내용입니다.
+              {year === 0 ? '전체 년도' : (month !== 0 && [1, 2, 3].includes(month) ? `${year + 1}년` : `${year}년`)} {month === 0 ? '전체 월' : `${month}월`} 분석 내용입니다.
             </p>
           </div>
           <button 

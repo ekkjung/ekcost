@@ -34,21 +34,18 @@ export const Home: React.FC<HomeProps> = ({ items, formatCurrency }) => {
   }, [items, year, month]);
 
   const yearlyData = useMemo(() => {
-    if (month !== 0) {
-      // If a specific month is selected, show data for that month only or maybe compare with previous/next?
-      // Let's keep showing 12 months but for the selected year.
-      // If year is 0, this might be huge.
-      // Usually yearlyData is for a specific year.
-    }
-    
     const targetYear = year === 0 ? new Date().getFullYear() : year;
+    const monthOrder = [4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3];
 
-    return Array.from({ length: 12 }, (_, i) => {
-      const m = i + 1;
+    return monthOrder.map(m => {
       const planned = items.filter(item => item.isPlanned && item.year === targetYear && item.month === m).reduce((sum, item) => sum + item.totalAmount, 0);
       const actual = items.filter(item => !item.isPlanned && item.year === targetYear && item.month === m).reduce((sum, item) => sum + item.totalAmount, 0);
+      
+      // 1, 2, 3월의 경우 표시 연도에 1년을 더함
+      const displayYear = m <= 3 ? targetYear + 1 : targetYear;
+      
       return {
-        name: `${m}월`,
+        name: `${displayYear}년 ${m}월`,
         계획: planned,
         실제: actual
       };
@@ -64,7 +61,9 @@ export const Home: React.FC<HomeProps> = ({ items, formatCurrency }) => {
           </div>
           <div>
             <h2 className="text-xl font-bold text-slate-900">현황 요약</h2>
-            <p className="text-xs text-slate-400">선택한 기간의 예산 집행 현황입니다.</p>
+            <p className="text-xs text-slate-400">
+              선택한 기간({year === 0 ? '전체' : (month === 0 ? `${year}년 4월 ~ ${year + 1}년 3월` : `${(month <= 3 ? year + 1 : year)}년 ${month}월`)})의 예산 집행 현황입니다.
+            </p>
           </div>
         </div>
         <div className="flex gap-3">
@@ -82,7 +81,10 @@ export const Home: React.FC<HomeProps> = ({ items, formatCurrency }) => {
             className="bg-slate-50 border-none rounded-2xl px-4 py-2.5 text-sm font-bold focus:ring-2 focus:ring-blue-100 outline-none cursor-pointer"
           >
             <option value={0}>전체 월</option>
-            {Array.from({ length: 12 }, (_, i) => i + 1).map(m => <option key={m} value={m}>{m}월</option>)}
+            {Array.from({ length: 12 }, (_, i) => i + 1).map(m => {
+              const displayYear = (year !== 0 && [1, 2, 3].includes(m)) ? year + 1 : year;
+              return <option key={m} value={m}>{year !== 0 ? `${displayYear}년 ` : ''}{m}월</option>;
+            })}
           </select>
         </div>
       </div>
@@ -132,7 +134,7 @@ export const Home: React.FC<HomeProps> = ({ items, formatCurrency }) => {
 
       <div className="bg-white/60 backdrop-blur-md p-8 rounded-3xl border border-white/50 shadow-sm">
         <h3 className="text-lg font-bold mb-6">
-          {year === 0 ? '년간' : `${year}년`} 예산 대비 사용량
+          {year === 0 ? '년간' : `${year}년 4월 ~ ${year + 1}년 3월`} 예산 대비 사용량
         </h3>
         <div className="h-[400px]">
           <ResponsiveContainer width="100%" height="100%">
